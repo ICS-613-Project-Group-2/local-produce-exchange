@@ -1,0 +1,5 @@
+# Ignore Python version files created by pyenv
+*.python-version
+
+# Ignore Python bytecode files
+*__pycache__/
