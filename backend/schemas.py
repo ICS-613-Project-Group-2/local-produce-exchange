@@ -1,8 +1,129 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from datetime import date, datetime
 
 class RegisterUser(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=128, pattern="^[A-Za-z0-9-_]+$")
     email: EmailStr
     password: str = Field(..., min_length=1, max_length=128)
 
-    model_config = {"extra": "forbid"}
+class LoginUser(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+
+    user_id: int
+    name: str
+    email: EmailStr
+    profile_photo_id: int | None = None
+
+
+class CreateListing(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+    
+    name: str
+    description: str | None = None
+    quantity: int = Field(gt=0)
+    expiration_date: date | None = None
+    pickup_location: str | None = None
+    category: str | None = None
+    community_id: int | None = None
+
+
+class ListingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    listing_id: int
+    user_id: int | None
+    community_id: int | None
+    name: str
+    description: str | None
+    quantity: int
+    status: str | None
+    expiration_date: date | None
+    date_posted: datetime | None
+    pickup_location: str | None
+    category: str | None
+
+class ListingUpdate(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+
+    name: str | None = None
+    description: str | None = None
+    quantity: int | None = None
+    status: str | None = None
+
+
+class CreateClaim(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+    quantity_requested: int = Field(gt=0)
+
+
+class ClaimResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    request_id: int
+    listing_id: int | None
+    requester_user_id: int | None
+    quantity_requested: int
+    status: str | None
+    request_date: datetime | None
+    closed_date: datetime | None
+
+class CreateCommunity(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+
+    name: str
+    is_private: bool = False
+
+
+class CommunityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    community_id: int
+    name: str
+    is_private: bool | None = False
+
+
+class MembershipResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    community_id: int
+    role: str | None = "member"
+    date_joined: datetime | None = None
+
+
+class InviteUser(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
+    
+    email: EmailStr
+
+
+class InvitationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    invitation_id: int
+    community_id: int | None
+    sender_user_id: int | None
+    email: EmailStr
+    status: str | None
+    sent_date: datetime | None
+    expiration_date: datetime | None
