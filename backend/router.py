@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Form
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 
 from models import User
 from schemas import RegisterUser
