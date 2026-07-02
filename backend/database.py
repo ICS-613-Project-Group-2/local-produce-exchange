@@ -1,4 +1,14 @@
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from config import settings
 
-DATABASE_URL = "insert postgresql datbase url here"
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL, poolclass=NullPool)
+SessionLocal = sessionmaker(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
