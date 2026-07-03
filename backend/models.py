@@ -1,5 +1,3 @@
-# app/models.py
-
 from sqlalchemy import (
     Column,
     Integer,
@@ -191,4 +189,3 @@ class Photo(Base):
 
     photo_id = Column(Integer, primary_key=True)
     image_link = Column(Text, nullable=False)
-
