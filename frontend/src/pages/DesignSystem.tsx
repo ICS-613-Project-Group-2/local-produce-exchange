@@ -86,7 +86,7 @@ export default function DesignSystem() {
 
           <Card variant="warm">
             <CardImage
-              src="https://images.unsplash.com/photo-1518977676601-b53f82ber633?w=400&h=300&fit=crop"
+              src="https://images.unsplash.com/photo-1563252722-6434563a985d?w=400&h=300&fit=crop"
               alt="Zucchini"
             />
             <CardBody>
