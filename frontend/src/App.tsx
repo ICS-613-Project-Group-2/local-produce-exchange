@@ -21,6 +21,7 @@ import Profile from "./pages/Profile";
 import ListingHistory from "./pages/ListingHistory";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+import DesignSystem from "./pages/DesignSystem";
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/notifications" element={<Notifications />} />
 
         {/* Catch-all */}
+        <Route path="/design-system" element={<DesignSystem />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
