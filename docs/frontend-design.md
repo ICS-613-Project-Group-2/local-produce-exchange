@@ -144,7 +144,7 @@ White/warm-white background, warm border, 16px radius, consistent padding, subtl
 ### Navigation
 - Green top bar with clear links, active state, hover states
 - Logo (leaf/produce icon) top-left
-- **Logged out:** Browse, About, Log In, Sign Up
+- **Logged out:** About, Log In, Sign Up (no access to Browse, Communities, or authenticated pages)
 - **Logged in:** Browse, Communities, Post Listing, Messages, Dashboard, Profile, notification icon
 - Post Listing action slightly emphasized
 
@@ -205,17 +205,22 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 
 ## Pages
 
-### Landing/Home Page
+### Landing/Home Page ⚡ Priority
 *First page users see, explains what the app does*
 
+> **Access:** This page has two versions. Logged-out users see the marketing/intro landing page. Logged-in users see a separate personalized version or are redirected to their dashboard.
+
+**Logged-out version:**
 - The landing page should be the first page users see when they open Green Beans. It should quickly explain that the site is a local food exchange platform where people can share surplus produce, browse available food, join communities, and coordinate exchanges. The tone should feel welcoming, fresh, simple, and community-focused.
-- The top hero section should include the Green Beans name or logo, a short tagline such as "Share fresh food with your local community," and a clear description of the platform. This section should include strong call-to-action buttons such as "Browse Listings," "Create a Listing," and "Join a Community." A bright produce, farmers market, or community garden image would help support the Farmers Market theme.
-- The landing page should include a search or browse section so users can immediately look for available produce or communities. This could include a search bar with placeholder text like "Search for produce, categories, or communities," along with quick category buttons such as fruits, vegetables, herbs, baked goods, or pantry items.
+- The top hero section should include the Green Beans name or logo, a short tagline such as "Share fresh food with your local community," and a clear description of the platform. This section should include strong call-to-action buttons such as "Sign Up" and "Learn More." A bright produce, farmers market, or community garden image would help support the Farmers Market theme.
 - A featured listings section should show sample produce cards so users understand what listings look like. Each card should include a produce image, item name, quantity, pickup area, expiration or harvest date, and a status badge such as "Available," "Reserved," or "Expiring Soon." This section should highlight freshness and expiration information because the project focuses on reducing waste before food goes unused.
 - The page should include a simple "How It Works" section that explains the main user flow. Users can join a community, browse available listings, message the listing owner, and coordinate the exchange. This section can use short cards or icons to make the process easy to understand.
 - The landing page should also preview the community feature. This section can show a few sample community cards with a community name, short description, public/private badge, member count, and a button such as "Join" or "Request to Join." This helps show that the app supports both public and private food-sharing groups.
 - A trust and purpose section should explain that Green Beans is not a regular shopping marketplace. It is focused on local sharing, trading, and community exchange. Users coordinate through direct messages instead of automated checkout, which keeps the platform simple and community-based.
-- The page should end with a final call-to-action encouraging users to get started. Suggested text could be "Ready to share fresh food with your community?" followed by buttons like "Browse Listings" and "Create a Listing." Visually, the page should use the Farmers Market theme with green navigation, yellow or orange accents, white listing cards, a soft cream background, rounded buttons, and bright natural-looking produce images.
+- The page should end with a final call-to-action encouraging users to get started. Suggested text could be "Ready to share fresh food with your community?" followed by buttons like "Sign Up" and "Learn More." Visually, the page should use the Farmers Market theme with green navigation, yellow or orange accents, white listing cards, a soft cream background, rounded buttons, and bright natural-looking produce images.
+
+**Logged-in version:**
+- Logged-in users should see a personalized home page or be redirected to their dashboard. This version does not need the marketing hero or "How It Works" sections. Instead it can show a summary of the user's activity, quick links to their communities, recent or expiring-soon listings from their communities, and actions like "Create a Listing" or "Browse Listings."
 
 ### About Page
 *What your site is, why it exists, who it helps, and how users can participate*
@@ -252,14 +257,20 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - The page should remain clean and accessible. Inputs and buttons should be large enough to use comfortably, the text should be easy to read, and the visual design should avoid clutter so users can log in quickly.
 
 ### Forgot Password / Reset Password Page
+
+> **TODO:** No backend endpoint exists for password reset. Decide: build as placeholder pages or skip entirely? Backend would need `POST /v1/forgot-password` and `POST /v1/reset-password`.
 - The Forgot Password and Reset Password flow should help users regain access to their Green Beans account if they cannot remember their password. This does not need to be a major standalone feature page, but it should be included as part of the login and account access flow.
 - The first screen should be a "Forgot Password" page or modal linked from the Login page. It should include a heading such as "Reset your password," a short explanation, an email input field, and a primary button labeled "Send Reset Link." The design should match the Login and Sign Up pages with a soft cream background, white form card, green button, and simple Farmers Market styling.
 - The page should show clear success and error states. After a user submits their email, the mockup can show a message such as "Check your email for a password reset link." Error examples can include "Email is required," "No account found with that email," or "Something went wrong. Please try again."
 - The second screen should be a "Create New Password" page. It should include fields for "New Password" and "Confirm New Password," along with a primary button labeled "Update Password." The mockup should also show possible validation messages such as "Passwords do not match" or "Reset link expired."
 - After the password is successfully updated, the user should see a success message or be redirected back to the Login page. Since this is a support flow, the layout should stay simple, accessible, and focused only on helping the user recover their account.
 
-### Browse Listings / Search Results Page
+### Browse Listings / Search Results Page ⚡ Priority
 *See listings by keyword or category*
+
+> **TODO:** Search filters are placeholder. Update filter options once the team decides which filters to support.
+> **Note:** This page shows listings grouped by community, pulling from all communities the user belongs to. Search applies across all communities. Requires login.
+> **Note:** Closed listings should not appear on this page. If a listing becomes closed while displayed, it should update on the next response.
 
 - The Browse Listings page should help users quickly find available produce or food items in their communities. This page should focus on search, filtering, and easy scanning so users can compare listings and decide which items they want to view in more detail.
 - The top of the page should include a clear heading such as "Browse Listings" and a short description explaining that users can search for available food shared by local community members. Below the heading, include a large search bar with placeholder text such as "Search for produce, categories, or communities." The search area can also include filter options for category, pickup area, expiration date, availability status, and quantity.
@@ -271,6 +282,11 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 ### Listing Details Page
 *All information about one food item*
 
+> **TODO:** Do we want to allow multiple images per listing? The database supports it (listing_photos join table), but need to decide on the UI treatment (carousel, gallery, single hero image, etc.).
+> **TODO:** Claim request vs "Message Owner" flow — The API has a formal claim system (`POST /v1/listings/{listing_id}/claims` with approve/decline/cancel) and messaging is tied to claims (`GET /v1/claims/{claim_id}/thread`). Decide: (A) user submits a claim request with quantity, then messaging opens within that claim context, or (B) user messages first, claim is created behind the scenes?
+> **TODO:** Partial exchange logic — How should exchange status be updated and remaining quantity adjusted after a partial exchange? (e.g., listing has 10, claim approved for 3 — does quantity drop to 7 and stay "Available"?)
+> **TODO:** Quantity measurement — How do we measure produce quantity? Weight is not discrete unless constrained. If using individual count (bunches, heads, pieces), how do we account for size differences? Should this be communicated in the listing description, or is a separate step needed in the claiming process?
+
 - The Listing Details page should show all important information about one produce or food listing so users can decide whether they want to message the owner and coordinate an exchange. This page should be clear, trustworthy, and easy to scan, especially because users need to understand the item's quantity, freshness, pickup information, and availability before taking action.
 - The top of the page should include a large produce image, the listing title, and a status badge such as "Available," "Reserved," "Closed," or "Expiring Soon." Near the title, the page should show the category, quantity available, posting date, expiration date, harvest date if provided, and a freshness message such as "Expires in 2 days" or "Date not available." Freshness and expiration details should be visually noticeable because the project focuses on reducing food waste before items go bad.
 - The main listing information should include a short description, pickup area, pickup window, storage conditions, and any notes from the owner. This section should help users understand what the item is, where it can be picked up, and whether the pickup timing works for them. The layout can use separate information cards or clearly divided sections so the page does not feel crowded.
@@ -279,8 +295,11 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - The page should also show clear error or edge states. Examples include missing expiration information, invalid date information, unavailable listing status, or a failed message attempt. These messages should be simple and placed near the action or information they relate to.
 - The layout should follow the Farmers Market theme with a soft cream background, white content cards, green primary buttons, yellow or orange freshness badges, rounded corners, and bright natural produce images. On desktop, the image and main details can sit side by side.
 
-### Create Listing Page
+### Create Listing Page ⚡ Priority
 *Users with surplus produce need to create a listing with details and photos*
+
+> **TODO:** Pickup window, storage conditions, and harvest date are mentioned in this page description but don't exist in the database schema. Decide: add these fields to the schema, or remove from the page description?
+> **TODO:** Specify what item details are exactly necessary when creating a listing — quantity and units (custom text or preset options like "lbs," "bunches," "pieces"?), dietary restrictions, allergens, etc. Which fields are required vs optional?
 
 - The Create Listing page should allow logged-in users to post surplus produce or food items so other community members can view and request them. This page should feel simple and guided, since users need to enter enough information for others to understand the item, freshness, quantity, and pickup details.
 - The top of the page should include a heading such as "Create a Listing" and a short description explaining that users can share extra produce with their local community. The page should use a clear form layout with sections for basic item details, freshness information, pickup details, photos, and final review before publishing.
@@ -291,7 +310,9 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - At the bottom of the page, include a primary button labeled "Publish Listing" and a secondary button such as "Cancel" or "Save Draft" if your team wants that option. After the listing is successfully published, the user should be taken to the listing details page or dashboard, with a success message such as "Listing published successfully."
 - The visual style should follow the Farmers Market theme with a soft cream background, a white form card, green primary button, light gray input borders, rounded corners, and small produce-related icons.
 
-### Edit Listing / Manage Listing Page
+### Edit Listing / Manage Listing Page ⚡ Priority
+
+> **TODO:** Should users be able to manually change the listing status, or should it be automatic based on the remaining quantity and the state of existing requests?
 - The Edit Listing or Manage Listing page should allow listing owners to update, manage, or remove their existing produce listings. This page should be accessible from the user dashboard, listing details page, or listing history area, and should only be available to the owner of the listing.
 - The page should look similar to the Create Listing page, but the form fields should already be filled in with the current listing information. Users should be able to edit the produce name, category, quantity, unit, description, expiration date, harvest date, pickup area, pickup window, storage conditions, photos, and community placement if allowed.
 - The page should include listing management actions in addition to normal editing. The owner should be able to save changes, update the remaining quantity, mark the listing as reserved, mark the listing as closed, or delete the listing. These actions help keep the listing accurate after the owner coordinates an exchange through messages.
@@ -301,7 +322,7 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - After the user saves changes, the page should show a success message such as "Listing updated successfully" and return the user to the listing details page or dashboard. If the user deletes the listing, the app should return them to the dashboard or listing history page.
 - The visual style should follow the Farmers Market theme with a soft cream background, white form cards, green save buttons, red delete buttons, rounded corners, light gray input borders, and clear status badges.
 
-### Messages / Inbox Page
+### Messages / Inbox Page ⚡ Priority
 *Private messaging to coordinate exchanges*
 
 - The Messages or Inbox page should allow users to view and manage all of their conversations in one place. This page is important because Green Beans uses direct messaging to coordinate produce exchanges, ask questions, confirm pickup details, and communicate about specific listings.
@@ -312,8 +333,11 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - The page should only show conversations the user is allowed to access. Since private messages are between the listing owner and the interested user, the mockup should avoid showing messages from unrelated users or communities.
 - The visual style should follow the Farmers Market theme with a soft cream background, white message cards, green accents for active or selected conversations, orange or yellow unread indicators, rounded corners, and clear spacing.
 
-### Message Thread Page
+### Message Thread Page ⚡ Priority
 *Users coordinate pickup details manually*
+
+> **TODO:** Claim request vs "Message Owner" flow also affects this page. Messaging is tied to claims in the API (`GET /v1/claims/{claim_id}/thread`). The thread should show claim context (quantity requested, status). Decide how status updates (approve/decline/cancel) are surfaced here.
+> **TODO:** Should the request quantity be editable once a claim request has been accepted by the lister? This could seem unfair to other users and/or cause problems with user expectations.
 
 - The Message Thread page should allow two users to communicate directly about a specific produce or food listing. This page is important because Green Beans uses direct messages to coordinate pickup details, ask questions, discuss requested quantities, and complete exchanges manually.
 - The top of the page should show the related listing information so both users know which item the conversation is about. This pinned listing section can include the produce name, small image, quantity available, requested quantity if provided, pickup area, freshness or expiration date, and current status such as "Available," "Reserved," or "Closed."
@@ -325,6 +349,8 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 
 ### User Dashboard Page
 *Personal dashboard showing active listings, messages, reserved items, and past closed listings*
+
+> **TODO:** "Reserved items" — Decide: does this mean the user's outgoing approved claims, listings they own that are marked reserved, or both?
 
 - The User Dashboard page should serve as the main control center for a logged-in user. It should help users quickly manage their Green Beans activity, including active listings, reserved items, recent messages, and past closed listings. This page should feel organized, personal, and easy to scan.
 - The top of the page should include a greeting or page title such as "My Dashboard" or "Welcome back," along with a short summary of the user's current activity. This area can include small overview cards showing counts for active listings, unread messages, reserved items, pending requests, or completed exchanges.
@@ -360,6 +386,8 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 ### Leave Review Page or Modal
 *Reviews help build trust after exchanges, can be a modal or popup*
 
+> **TODO:** Reviews — who can review whom? The schema has `reviewer_user_id` and `reviewed_user_id` on a claim request. Decide: can both parties (lister and claimer) review each other, or only the claimer reviews the lister?
+
 - The Leave Review page or modal should allow users to submit feedback after a produce exchange has been completed. This feature helps build trust between community members by showing ratings and comments on user profiles.
 - This feature can be designed as a modal instead of a full page because it is a short action connected to exchange history or listing history. Users can open it by clicking a "Leave Review" button next to a completed exchange. The modal should clearly show who the user is reviewing and which exchange the review is connected to.
 - The review form should include a star rating from 1 to 5 and an optional written comment box. The page or modal can include a short prompt such as "How was your exchange?" to make the action feel simple and friendly. The form should also include a green "Submit Review" button and a secondary "Cancel" button.
@@ -369,6 +397,9 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 
 ### Communities Page
 *Users need to browse, search, join public communities, and request access to private communities*
+
+> **TODO:** Search filters are placeholder. Update filter options once the team decides which filters to support.
+> **Note:** Requires login. Logged-out users cannot access this page. Supports both public (join freely) and private (request or invite required) communities.
 
 - The Communities page should allow users to browse, search, and join local food-sharing communities. This page helps users find groups where they can view listings, participate in discussions, and connect with people sharing produce or food nearby.
 - The top of the page should include a heading such as "Communities" or "Find a Community," along with a short description explaining that users can join public communities or request access to private ones. A search bar should let users search by community name, location, or topic, and filters can help separate public communities, private communities, and communities the user has already joined.
@@ -381,6 +412,8 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 ### Community Detail Page
 *Browse listings within a community and where admins can manage the community; for a private community, show a locked version with request to join button*
 
+> **TODO:** Community posts/announcements — No `posts` table or API endpoint exists in the backend. Decide: keep as a planned future feature, or remove posts/announcements from this page description?
+
 - The Community Detail page should show information about one specific food-sharing community and allow members to view community activity, listings, posts, and available actions. This page should help users understand what the community is, whether they have access to it, and how they can participate.
 - The top of the page should include a community header with the community name, short description, general location, member count, and a public or private badge. It can also include a banner image or simple community icon that matches the Farmers Market theme. If the user is not a member, the page should show a clear action button such as "Join Community" for public communities or "Request to Join" for private communities.
 - For members, the page should show community listings so users can browse food or produce shared within that group. Listing cards can include the produce image, item name, quantity, pickup area, expiration or harvest date, and status badge. A button such as "Create Listing in this Community" can allow members to post directly to that community.
@@ -390,7 +423,7 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - The mockup should include useful empty and error states. If the community has no listings yet, the page can show "No listings in this community yet" with a button to create a listing. If there are no posts, it can show "No community posts yet." If the community fails to load or no longer exists, the page should show a clear error message.
 - The visual style should follow the Farmers Market theme with a soft cream background, white content cards, green action buttons, yellow or orange status badges, rounded corners, and friendly community or produce imagery. On desktop, the page can use tabs or sections for "Listings," "Posts," and "Members."
 
-### Create Community Page
+### Create Community Page ⚡ Priority
 *Users creating or hosting their own community*
 
 - The Create Community page should allow a logged-in user to create a new food-sharing community where members can post listings, view community activity, and coordinate local exchanges. This page should feel simple and guided because the user needs to define the community's name, purpose, location, privacy level, and basic rules before creating it.
@@ -402,7 +435,7 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - After the community is successfully created, the user should see a success message such as "Community created successfully" and be taken to the new Community Detail page. The creator should automatically have an admin or host role so they can manage members, invite users, review join requests, and update community settings.
 - The visual style should follow the Farmers Market theme with a soft cream background, a white form card, green primary button, light gray input borders, rounded corners, and a friendly community or produce image.
 
-### Community Admin / Manage Members Page
+### Community Admin / Manage Members Page ⚡ Priority
 *Admins need to manage members, roles, join requests, and remove bad-faith users/listings*
 
 - The Community Admin or Manage Members page should allow community admins to manage membership, roles, join requests, invitations, and moderation for a specific community. This page should only be accessible to users with the correct admin permissions, and it should make clear which actions are available to admins versus regular members.
@@ -414,7 +447,7 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 - The page should include useful success, error, and empty states. Examples include "No pending join requests," "Member role updated," "User has already been removed," "Listing has already been removed," or "Changes could not be saved. Please try again." These states should help admins understand what happened after each action.
 - The visual style should follow the Farmers Market theme with a soft cream background, white admin cards or tables, green action buttons, red danger buttons for removal actions, yellow or orange warning badges, rounded corners, and clear spacing. On desktop, tables can be used for members and requests.
 
-### Notifications Page
+### Notifications Page ⚡ Priority
 *Accepted, denied, canceled, removed listings, kicked members, and other exchange status changes*
 
 - The Notifications page should give users one place to view important updates related to their Green Beans activity. This page should help users stay informed about messages, community requests, listing updates, exchange status changes, canceled requests, reviews, and admin actions.
@@ -430,3 +463,5 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 
 ## Routing
 <!-- Define route structure -->
+
+
