@@ -45,6 +45,12 @@
   color: var(--color-primary);
 }
 
+/* Picked Up */
+.badge--picked-up {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
 /* Canceled */
 .badge--canceled {
   background-color: #fee2e2;
