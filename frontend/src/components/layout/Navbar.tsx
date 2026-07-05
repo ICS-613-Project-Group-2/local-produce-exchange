@@ -28,7 +28,7 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/listings/new" className="navbar__link navbar__link--emphasis">
+                <NavLink to="/listings/new" className="navbar__link">
                   Post Listing
                 </NavLink>
               </li>

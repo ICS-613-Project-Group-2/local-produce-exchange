@@ -24,6 +24,11 @@
   color: #ffffff;
 }
 
+.navbar__brand:hover {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+}
+
 .navbar__logo {
   font-size: 24px;
 }
