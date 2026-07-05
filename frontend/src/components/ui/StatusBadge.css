@@ -1,0 +1,70 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Available */
+.badge--available {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* Reserved */
+.badge--reserved {
+  background-color: var(--color-secondary-soft);
+  color: #92400e;
+}
+
+/* Expiring Soon */
+.badge--expiring-soon {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+/* Closed */
+.badge--closed {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Pending */
+.badge--pending {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Completed */
+.badge--completed {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* Canceled */
+.badge--canceled {
+  background-color: #fee2e2;
+  color: var(--color-error);
+}
+
+/* Error */
+.badge--error {
+  background-color: #fee2e2;
+  color: var(--color-error);
+}
+
+/* Public */
+.badge--public {
+  background-color: var(--color-primary-softer);
+  color: var(--color-primary);
+}
+
+/* Private */
+.badge--private {
+  background-color: var(--color-secondary-soft);
+  color: #92400e;
+}
