@@ -271,6 +271,7 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 > **TODO:** Search filters are placeholder. Update filter options once the team decides which filters to support.
 > **Note:** This page shows listings grouped by community, pulling from all communities the user belongs to. Search applies across all communities. Requires login.
 > **Note:** Closed listings should not appear on this page. If a listing becomes closed while displayed, it should update on the next response.
+> **Note:** Each listing card should include a community label so users know which community it belongs to.
 
 - The Browse Listings page should help users quickly find available produce or food items in their communities. This page should focus on search, filtering, and easy scanning so users can compare listings and decide which items they want to view in more detail.
 - The top of the page should include a clear heading such as "Browse Listings" and a short description explaining that users can search for available food shared by local community members. Below the heading, include a large search bar with placeholder text such as "Search for produce, categories, or communities." The search area can also include filter options for category, pickup area, expiration date, availability status, and quantity.
@@ -287,6 +288,8 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 > **TODO:** Partial exchange logic — How should exchange status be updated and remaining quantity adjusted after a partial exchange? (e.g., listing has 10, claim approved for 3 — does quantity drop to 7 and stay "Available"?)
 > **TODO:** Quantity measurement — How do we measure produce quantity? Weight is not discrete unless constrained. If using individual count (bunches, heads, pieces), how do we account for size differences? Should this be communicated in the listing description, or is a separate step needed in the claiming process?
 
+> **Decided:** User submits a formal claim request with quantity (Option A), then messaging opens within that claim context. System deducts approved quantity from available inventory automatically. If approving would exceed available, system blocks it. Quantity is integer + freeform unit text. Size differences are communicated in the listing description.
+
 - The Listing Details page should show all important information about one produce or food listing so users can decide whether they want to message the owner and coordinate an exchange. This page should be clear, trustworthy, and easy to scan, especially because users need to understand the item's quantity, freshness, pickup information, and availability before taking action.
 - The top of the page should include a large produce image, the listing title, and a status badge such as "Available," "Reserved," "Closed," or "Expiring Soon." Near the title, the page should show the category, quantity available, posting date, expiration date, harvest date if provided, and a freshness message such as "Expires in 2 days" or "Date not available." Freshness and expiration details should be visually noticeable because the project focuses on reducing food waste before items go bad.
 - The main listing information should include a short description, pickup area, pickup window, storage conditions, and any notes from the owner. This section should help users understand what the item is, where it can be picked up, and whether the pickup timing works for them. The layout can use separate information cards or clearly divided sections so the page does not feel crowded.
@@ -300,6 +303,8 @@ Friendly, simple, direct. Community-centered, not technical or transactional.
 
 > **TODO:** Pickup window, storage conditions, and harvest date are mentioned in this page description but don't exist in the database schema. Decide: add these fields to the schema, or remove from the page description?
 > **TODO:** Specify what item details are exactly necessary when creating a listing — quantity and units (custom text or preset options like "lbs," "bunches," "pieces"?), dietary restrictions, allergens, etc. Which fields are required vs optional?
+
+> **Decided:** All listing fields are required to publish: name, category, quantity, unit, expiration date, pickup location, photo, and community. Quantity is an integer field paired with a freeform text unit field (e.g., "5" + "lbs" or "3" + "bunches"). This lets users describe quantity in whatever unit makes sense for their item.
 
 - The Create Listing page should allow logged-in users to post surplus produce or food items so other community members can view and request them. This page should feel simple and guided, since users need to enter enough information for others to understand the item, freshness, quantity, and pickup details.
 - The top of the page should include a heading such as "Create a Listing" and a short description explaining that users can share extra produce with their local community. The page should use a clear form layout with sections for basic item details, freshness information, pickup details, photos, and final review before publishing.

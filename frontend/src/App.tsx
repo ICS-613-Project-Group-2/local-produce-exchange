@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Navbar from "./components/layout/Navbar";
 
 import Landing from "./pages/Landing";
 import About from "./pages/About";
@@ -24,11 +26,15 @@ import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 
 export default function App() {
+  // Temporary auth state for development — toggle to see logged-in vs logged-out nav
+  const [isLoggedIn] = useState(true);
+
   return (
     <BrowserRouter>
+      <Navbar isLoggedIn={isLoggedIn} />
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
@@ -51,7 +57,7 @@ export default function App() {
         <Route path="/history" element={<ListingHistory />} />
         <Route path="/notifications" element={<Notifications />} />
 
-        {/* Catch-all */}
+        {/* Dev tools */}
         <Route path="/design-system" element={<DesignSystem />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

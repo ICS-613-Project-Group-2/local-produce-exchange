@@ -1,0 +1,152 @@
+/* Hero */
+.landing__hero {
+  background-color: var(--color-primary-light);
+  padding: var(--space-8) var(--page-padding);
+  text-align: center;
+}
+
+.landing__hero-content {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.landing__hero-title {
+  font-size: var(--font-size-hero);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-4);
+}
+
+.landing__hero-description {
+  font-size: var(--font-size-body);
+  color: var(--color-text);
+  margin-bottom: var(--space-6);
+  line-height: 1.7;
+}
+
+.landing__hero-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Sections */
+.landing__section {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-7) var(--page-padding);
+}
+
+.landing__section--alt {
+  background-color: var(--color-background-warm);
+  max-width: 100%;
+  text-align: center;
+}
+
+.landing__section--alt .landing__section-title,
+.landing__section--alt .landing__trust-text {
+  max-width: var(--max-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing__section-title {
+  font-size: var(--font-size-section-heading);
+  margin-bottom: var(--space-5);
+}
+
+/* How It Works */
+.landing__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-5);
+}
+
+.landing__step {
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.landing__step-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.landing__step h3 {
+  font-size: var(--font-size-card-title);
+  margin-bottom: var(--space-2);
+}
+
+.landing__step p {
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+}
+
+/* Grid */
+.landing__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.landing__grid--2col {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+
+/* Card content */
+.landing__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.landing__card-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  margin-top: var(--space-2);
+}
+
+.landing__card-location {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-helper);
+  margin-top: var(--space-1);
+}
+
+.landing__card-community {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-helper);
+  margin-top: var(--space-1);
+}
+
+/* Trust */
+.landing__trust-text {
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+/* CTA */
+.landing__cta {
+  text-align: center;
+  padding: var(--space-8) var(--page-padding);
+}
+
+/* Welcome (logged-in) */
+.landing__welcome {
+  text-align: center;
+  padding: var(--space-6) 0;
+}
+
+.landing__welcome h1 {
+  font-size: var(--font-size-page-title);
+  margin-bottom: var(--space-2);
+}
+
+.landing__welcome-subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
