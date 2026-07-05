@@ -1,0 +1,107 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+  border: 2px solid transparent;
+  line-height: 1;
+}
+
+/* Sizes */
+.btn--sm {
+  font-size: var(--font-size-badge);
+  padding: var(--space-2) var(--space-3);
+}
+
+.btn--md {
+  font-size: var(--font-size-body);
+  padding: var(--space-3) var(--space-5);
+}
+
+.btn--lg {
+  font-size: var(--font-size-card-title);
+  padding: var(--space-4) var(--space-6);
+}
+
+/* Primary */
+.btn--primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+/* Secondary */
+.btn--secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-secondary-hover);
+}
+
+/* Accent */
+.btn--accent {
+  background-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.btn--accent:hover:not(:disabled) {
+  background-color: var(--color-accent-dark);
+  color: #ffffff;
+}
+
+/* Outline */
+.btn--outline {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn--outline:hover:not(:disabled) {
+  background-color: var(--color-primary-softer);
+}
+
+/* Danger */
+.btn--danger {
+  background-color: var(--color-error);
+  color: #ffffff;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+/* Disabled */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading spinner */
+.btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+.btn__text--loading {
+  opacity: 0.7;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

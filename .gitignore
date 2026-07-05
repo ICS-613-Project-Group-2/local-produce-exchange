@@ -8,3 +8,11 @@
 
 # Ignore vscode files
 *.vscode
+
+# Ignore Kiro config
+.kiro/
+
+# Ignore Node dependencies and build output
+node_modules/
+dist/
+.env
