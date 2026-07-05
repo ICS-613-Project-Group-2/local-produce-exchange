@@ -57,6 +57,18 @@
   color: var(--color-error);
 }
 
+/* Approved */
+.badge--approved {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* Denied */
+.badge--denied {
+  background-color: #fee2e2;
+  color: var(--color-error);
+}
+
 /* Error */
 .badge--error {
   background-color: #fee2e2;

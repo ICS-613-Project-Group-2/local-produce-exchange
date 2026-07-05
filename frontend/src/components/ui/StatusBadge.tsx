@@ -9,6 +9,8 @@ type BadgeStatus =
   | "pending"
   | "completed"
   | "canceled"
+  | "approved"
+  | "denied"
   | "error"
   | "public"
   | "private";
@@ -28,6 +30,8 @@ const defaultLabels: Record<BadgeStatus, string> = {
   pending: "Pending",
   completed: "Completed",
   canceled: "Canceled",
+  approved: "Approved",
+  denied: "Denied",
   error: "Error",
   public: "Public",
   private: "Private",

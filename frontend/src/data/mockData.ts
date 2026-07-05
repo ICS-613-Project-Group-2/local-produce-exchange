@@ -1,4 +1,4 @@
-import type { User, Community, Listing, ClaimRequest, Notification } from "./types";
+import type { User, Community, Listing, ClaimRequest, Notification, MessageThread } from "./types";
 
 export const mockUsers: User[] = [
   {
@@ -239,6 +239,46 @@ export const mockNotifications: Notification[] = [
   },
 ];
 
+export const mockThreads: MessageThread[] = [
+  {
+    thread_id: 1,
+    claim_request_id: 1,
+    listing_id: 1,
+    participant_ids: [1, 2],
+    messages: [
+      { message_id: 1, thread_id: 1, sender_user_id: 2, content: "Hi! I'd love to pick up 3 lbs of tomatoes. Are they still available?", timestamp: "2026-07-02T10:30:00" },
+      { message_id: 2, thread_id: 1, sender_user_id: 1, content: "Yes, still available! I'm usually home in the afternoons. Does tomorrow around 3pm work?", timestamp: "2026-07-02T11:15:00" },
+      { message_id: 3, thread_id: 1, sender_user_id: 2, content: "That works perfectly. I'll come by around 3. Thanks so much!", timestamp: "2026-07-02T11:45:00" },
+      { message_id: 4, thread_id: 1, sender_user_id: 1, content: "Sounds good! I'll leave them on the front porch in a bag. See you then 🍅", timestamp: "2026-07-02T12:00:00" },
+    ],
+  },
+  {
+    thread_id: 2,
+    claim_request_id: 2,
+    listing_id: 6,
+    participant_ids: [3, 2],
+    messages: [
+      { message_id: 5, thread_id: 2, sender_user_id: 2, content: "Hey Rose! Could I grab 5 of the Meyer lemons? I want to make lemonade this weekend.", timestamp: "2026-07-01T14:00:00" },
+      { message_id: 6, thread_id: 2, sender_user_id: 3, content: "Of course! They're really juicy this year. Can you pick up Saturday morning?", timestamp: "2026-07-01T14:30:00" },
+      { message_id: 7, thread_id: 2, sender_user_id: 2, content: "Saturday morning works. What time?", timestamp: "2026-07-01T15:00:00" },
+      { message_id: 8, thread_id: 2, sender_user_id: 3, content: "How about 10am? I'll have them in a bag by the front steps at 456 Oak Ave.", timestamp: "2026-07-01T15:15:00" },
+      { message_id: 9, thread_id: 2, sender_user_id: 2, content: "Perfect, see you then! Thanks 🍋", timestamp: "2026-07-01T15:20:00" },
+    ],
+  },
+  {
+    thread_id: 3,
+    claim_request_id: 3,
+    listing_id: 7,
+    participant_ids: [1, 4],
+    messages: [
+      { message_id: 10, thread_id: 3, sender_user_id: 4, content: "Hi Lily, I'd like 2 jars of strawberry jam for the food pantry. Is that possible?", timestamp: "2026-06-21T09:00:00" },
+      { message_id: 11, thread_id: 3, sender_user_id: 1, content: "Absolutely! Happy to help the pantry. I can have them ready this afternoon.", timestamp: "2026-06-21T09:30:00" },
+      { message_id: 12, thread_id: 3, sender_user_id: 4, content: "Wonderful. I'll swing by around 4pm. Thank you so much!", timestamp: "2026-06-21T10:00:00" },
+      { message_id: 13, thread_id: 3, sender_user_id: 1, content: "Picked up! Hope the pantry folks enjoy it. 🍓", timestamp: "2026-06-21T16:30:00" },
+    ],
+  },
+];
+
 // Helper to get related data
 export function getUserById(id: number): User | undefined {
   return mockUsers.find((u) => u.user_id === id);
@@ -258,4 +298,12 @@ export function getListingsByCommunity(communityId: number): Listing[] {
 
 export function getActiveListings(): Listing[] {
   return mockListings.filter((l) => l.status !== "closed" && l.status !== "completed");
+}
+
+export function getThreadById(id: number): MessageThread | undefined {
+  return mockThreads.find((t) => t.thread_id === id);
+}
+
+export function getThreadsForUser(userId: number): MessageThread[] {
+  return mockThreads.filter((t) => t.participant_ids.includes(userId));
 }
