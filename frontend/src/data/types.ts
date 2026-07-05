@@ -51,6 +51,14 @@ export interface Message {
   timestamp: string;
 }
 
+export interface MessageThread {
+  thread_id: number;
+  claim_request_id: number;
+  listing_id: number;
+  participant_ids: [number, number];
+  messages: Message[];
+}
+
 export interface Notification {
   notification_id: number;
   user_id: number;

@@ -1,0 +1,176 @@
+.thread__back {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-label);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.thread__back:hover {
+  text-decoration: underline;
+}
+
+/* Listing context */
+.thread__listing-context {
+  margin-bottom: var(--space-5);
+}
+
+.thread__listing {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.thread__listing-image {
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-input);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.thread__listing-info {
+  flex: 1;
+}
+
+.thread__listing-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.thread__listing-header h3 {
+  font-size: var(--font-size-body);
+}
+
+.thread__listing-meta {
+  font-size: var(--font-size-helper);
+  color: var(--color-text-muted);
+}
+
+.thread__claim-info {
+  font-size: var(--font-size-helper);
+  color: var(--color-text);
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Conversation header */
+.thread__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thread__header h2 {
+  font-size: var(--font-size-card-title);
+}
+
+.thread__header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.thread__header-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Messages */
+.thread__messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  max-height: 500px;
+  overflow-y: auto;
+  padding: var(--space-4);
+  background-color: var(--color-background-warm);
+  border-radius: var(--radius-card);
+}
+
+.thread__bubble {
+  max-width: 70%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.thread__bubble--mine {
+  align-self: flex-end;
+  background-color: var(--color-primary-light);
+  border-bottom-right-radius: var(--space-1);
+}
+
+.thread__bubble--theirs {
+  align-self: flex-start;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: var(--space-1);
+}
+
+.thread__bubble-name {
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.thread__bubble-content {
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.thread__bubble-time {
+  font-size: var(--font-size-badge);
+  color: var(--color-text-muted);
+  align-self: flex-end;
+}
+
+/* Input area */
+.thread__input-area {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.thread__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: transparent;
+}
+
+.thread__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Inactive */
+.thread__inactive {
+  padding: var(--space-4);
+  background-color: var(--color-background-alt);
+  border-radius: var(--radius-card);
+  color: var(--color-text-muted);
+  text-align: center;
+}
