@@ -27,6 +27,16 @@
   max-width: 160px;
 }
 
+.edit-listing__status-toast {
+  background-color: var(--color-secondary-soft);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-label);
+  color: #92400e;
+}
+
 .edit-listing__closed-notice {
   background-color: var(--color-background-alt);
   border: 1px solid var(--color-border);
@@ -45,8 +55,88 @@
   margin-bottom: var(--space-5);
   color: var(--color-primary-dark);
   font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
+.edit-listing__timestamp {
+  font-size: var(--font-size-badge);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+
+/* Claims Summary */
+.edit-listing__claims-summary {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.edit-listing__claims-summary h3 {
+  font-size: var(--font-size-card-title);
+  margin-bottom: var(--space-3);
+}
+
+.edit-listing__claims-stats {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.edit-listing__claims-stat {
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-background-alt);
+  border-radius: 999px;
+}
+
+.edit-listing__claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.edit-listing__claim-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-background-alt);
+  border-radius: var(--radius-input);
+  font-size: var(--font-size-label);
+}
+
+.edit-listing__claim-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.edit-listing__claim-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+}
+
+.edit-listing__claim-name {
+  flex: 1;
+  font-weight: var(--font-weight-semibold);
+}
+
+.edit-listing__claim-qty {
+  color: var(--color-text-muted);
+}
+
+/* Form */
 .edit-listing__form {
   display: flex;
   flex-direction: column;
@@ -79,6 +169,68 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* Activity Log */
+.edit-listing__activity {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.edit-listing__activity h3 {
+  font-size: var(--font-size-card-title);
+  margin-bottom: var(--space-4);
+}
+
+.edit-listing__activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.edit-listing__activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-label);
+}
+
+.edit-listing__activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.edit-listing__activity-date {
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* Danger Zone */
+.edit-listing__danger-zone {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-card);
+}
+
+.edit-listing__danger-zone h3 {
+  font-size: var(--font-size-card-title);
+  color: var(--color-error);
+  margin-bottom: var(--space-2);
+}
+
+.edit-listing__danger-zone p {
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+/* Error/Deleted states */
 .edit-listing__error,
 .edit-listing__deleted {
   text-align: center;
