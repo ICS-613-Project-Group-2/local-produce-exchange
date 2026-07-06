@@ -18,10 +18,11 @@ export default function Communities() {
   const filteredCommunities = searchQuery
     ? mockCommunities.filter(
         (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          !c.is_private &&
+          (c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase())))
       )
-    : mockCommunities;
+    : mockCommunities.filter((c) => !c.is_private);
 
   function handleSearch(query: string) {
     setSearchQuery(query);
