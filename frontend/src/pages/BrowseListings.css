@@ -1,16 +1,97 @@
 .browse__search {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
   max-width: 600px;
 }
 
+/* Category Chips */
+.browse__categories {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.browse__category-chip {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.browse__category-chip:hover {
+  border-color: var(--color-primary-light);
+  color: var(--color-text);
+}
+
+.browse__category-chip--active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+/* Controls */
+.browse__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.browse__result-count {
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+}
+
+.browse__controls-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.browse__sort-select {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-label);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.browse__view-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.browse__view-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: 16px;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  border-right: 1px solid var(--color-border);
+}
+
+.browse__view-btn:last-child {
+  border-right: none;
+}
+
+.browse__view-btn--active {
+  background-color: var(--color-primary-softer);
+  color: var(--color-primary);
+}
+
+/* Communities */
 .browse__communities {
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
-}
-
-.browse__community-section {
-  /* Each community group */
 }
 
 .browse__community-header {
@@ -27,10 +108,98 @@
   font-weight: var(--font-weight-bold);
 }
 
+.browse__community-count {
+  font-size: var(--font-size-badge);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* Grid */
 .browse__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-5);
+}
+
+/* List View */
+.browse__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.browse__list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.browse__list-item:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+}
+
+.browse__list-thumb {
+  width: 72px;
+  height: 54px;
+  border-radius: var(--radius-input);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.browse__list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.browse__list-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.browse__list-header h3 {
+  font-size: var(--font-size-body);
+}
+
+.browse__list-meta {
+  font-size: var(--font-size-helper);
+  color: var(--color-text-muted);
+}
+
+.browse__list-community {
+  font-size: var(--font-size-badge);
+  color: var(--color-text-muted);
+}
+
+.browse__list-expiry {
+  flex-shrink: 0;
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+}
+
+.browse__list-expiry--urgent {
+  color: var(--color-accent-dark);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Card styles */
+.browse__card {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.browse__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
 }
 
 .browse__card-header {
