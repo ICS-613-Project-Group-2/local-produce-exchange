@@ -32,6 +32,8 @@ class Community(Base):
 
     community_id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
+    description = Column(String(250), nullable=False)
+    location = Column(String(100), nullable=False)
     is_private = Column(Boolean, server_default=text("false"))
 
 

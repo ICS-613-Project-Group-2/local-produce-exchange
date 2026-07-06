@@ -5,13 +5,9 @@ from pathlib import Path
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from fastapi import HTTPException, Header
-from dotenv import load_dotenv
+from fastapi import HTTPException
+from config import settings
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
-
-JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 60
 
@@ -37,12 +33,12 @@ def create_access_tkn(user_id: int, email: str) -> str:
         "email": email,
         "exp": expiration
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
 def decode_access_tkn(token: str):
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return jwt.decode(token, settings.JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
