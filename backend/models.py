@@ -34,6 +34,7 @@ class Community(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(250), nullable=False)
     location = Column(String(100), nullable=False)
+    guidelines = Column(String(250), nullable=False)
     is_private = Column(Boolean, server_default=text("false"))
 
 

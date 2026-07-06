@@ -73,3 +73,8 @@
 .auth-page__links a {
   color: var(--color-primary);
 }
+
+.auth-page__submit-error {
+  color: var(--color-error);
+  font-size: var(--font-size-body);
+}

@@ -3,12 +3,17 @@ import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input } from "../components/ui/FormField";
+import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../lib/api";
 import "./AuthPages.css";
 
 export default function Login() {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
@@ -27,14 +32,31 @@ export default function Login() {
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      await login(formData.email, formData.password);
+      setSubmitted(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        setSubmitError("Incorrect email or password.");
+      } else if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Something went wrong while logging in. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -93,8 +115,14 @@ export default function Login() {
               <Link to="/forgot-password">Forgot Password?</Link>
             </div>
 
-            <Button variant="primary" type="submit" size="lg">
-              Log In
+            {submitError && (
+              <p className="auth-page__submit-error" role="alert">
+                {submitError}
+              </p>
+            )}
+
+            <Button variant="primary" type="submit" size="lg" disabled={submitting}>
+              {submitting ? "Logging in..." : "Log In"}
             </Button>
           </form>
 

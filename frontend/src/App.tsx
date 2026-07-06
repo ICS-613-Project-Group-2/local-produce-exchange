@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
+import { useAuth } from "./context/AuthContext";
 
 import Landing from "./pages/Landing";
 import About from "./pages/About";
@@ -26,12 +26,15 @@ import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 
 export default function App() {
-  // Temporary auth state for development — toggle to see logged-in vs logged-out nav
-  const [isLoggedIn] = useState(true);
+  const { isLoggedIn, isLoading, logout } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <BrowserRouter>
-      <Navbar isLoggedIn={isLoggedIn} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={logout} />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} />

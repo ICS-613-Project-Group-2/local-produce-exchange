@@ -24,7 +24,7 @@ class GetUser(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str
+    token_type: str = "bearer"
 
 class CreateListing(BaseModel):
     model_config = ConfigDict(
@@ -94,6 +94,9 @@ class CreateCommunity(BaseModel):
     )
 
     name: str
+    description: str
+    location: str
+    guidelines: str
     is_private: bool = False
 
 class CommunityResponse(BaseModel):
@@ -101,8 +104,10 @@ class CommunityResponse(BaseModel):
 
     community_id: int
     name: str
+    description: str
+    location: str
+    guidelines: str
     is_private: bool | None = False
-
 
 class MembershipResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
