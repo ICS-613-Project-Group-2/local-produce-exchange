@@ -6,30 +6,32 @@ import Button from "../components/ui/Button";
 import Card, { CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockCommunities } from "../data/mockData";
+import { mockCommunities, getMembersByCommunity, getUserById } from "../data/mockData";
 import "./Communities.css";
 
-// Simulate: user is a member of communities 1 and 2, not 3
-const USER_COMMUNITY_IDS = [1, 2];
+// Simulate: user is a member of communities 1, 2, 4
+const USER_COMMUNITY_IDS = [1, 2, 4];
 
 export default function Communities() {
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Only show public communities
+  const publicCommunities = mockCommunities.filter((c) => !c.is_private);
+
   const filteredCommunities = searchQuery
-    ? mockCommunities.filter(
+    ? publicCommunities.filter(
         (c) =>
-          !c.is_private &&
-          (c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase())))
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
       )
-    : mockCommunities.filter((c) => !c.is_private);
+    : publicCommunities;
+
+  // Separate into joined and available
+  const joinedCommunities = filteredCommunities.filter((c) => USER_COMMUNITY_IDS.includes(c.community_id));
+  const availableCommunities = filteredCommunities.filter((c) => !USER_COMMUNITY_IDS.includes(c.community_id));
 
   function handleSearch(query: string) {
     setSearchQuery(query);
-  }
-
-  function getMembershipStatus(communityId: number): "joined" | "none" {
-    return USER_COMMUNITY_IDS.includes(communityId) ? "joined" : "none";
   }
 
   return (
@@ -63,47 +65,84 @@ export default function Communities() {
           }
         />
       ) : (
-        <div className="communities__grid">
-          {filteredCommunities.map((community) => {
-            const status = getMembershipStatus(community.community_id);
-            return (
-              <Card key={community.community_id}>
-                {community.banner_url && (
-                  <div className="communities__banner">
-                    <img src={community.banner_url} alt={`${community.name} banner`} />
-                  </div>
-                )}
-                <CardBody>
-                  <div className="communities__card-header">
-                    <h3>{community.name}</h3>
-                    <StatusBadge status={community.is_private ? "private" : "public"} />
-                  </div>
-                  {community.description && (
-                    <p className="communities__card-description">{community.description}</p>
-                  )}
-                  <p className="communities__card-members">
-                    👥 {community.member_count} members
-                  </p>
-                </CardBody>
-                <CardFooter>
-                  {status === "joined" ? (
-                    <>
-                      <Link to={`/communities/${community.community_id}`}>
-                        <Button variant="outline" size="sm">View Community</Button>
-                      </Link>
-                      <span className="communities__joined-label">Already Joined</span>
-                    </>
-                  ) : community.is_private ? (
-                    <Button variant="secondary" size="sm">Request to Join</Button>
-                  ) : (
-                    <Button variant="primary" size="sm">Join Community</Button>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          {/* My Communities */}
+          {joinedCommunities.length > 0 && (
+            <section className="communities__section">
+              <h2 className="communities__section-title">My Communities</h2>
+              <div className="communities__grid">
+                {joinedCommunities.map((community) => (
+                  <CommunityCard key={community.community_id} community={community} status="joined" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Available Communities */}
+          {availableCommunities.length > 0 && (
+            <section className="communities__section">
+              <h2 className="communities__section-title">Available to Join</h2>
+              <div className="communities__grid">
+                {availableCommunities.map((community) => (
+                  <CommunityCard key={community.community_id} community={community} status="none" />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function CommunityCard({ community, status }: { community: typeof mockCommunities[0]; status: "joined" | "none" }) {
+  const members = getMembersByCommunity(community.community_id);
+  const memberAvatars = members.slice(0, 4).map((m) => getUserById(m.user_id)).filter(Boolean);
+
+  return (
+    <Card className="communities__card">
+      {community.banner_url && (
+        <div className="communities__banner">
+          <img src={community.banner_url} alt={`${community.name} banner`} />
+        </div>
+      )}
+      <CardBody>
+        <div className="communities__card-header">
+          <h3>{community.name}</h3>
+          <StatusBadge status={community.is_private ? "private" : "public"} />
+        </div>
+        {community.description && (
+          <p className="communities__card-description">{community.description}</p>
+        )}
+        <div className="communities__card-footer-info">
+          <div className="communities__member-avatars">
+            {memberAvatars.map((user) =>
+              user?.profile_photo_url ? (
+                <img key={user.user_id} src={user.profile_photo_url} alt={user.name} className="communities__member-avatar" />
+              ) : (
+                <div key={user?.user_id} className="communities__member-avatar communities__member-avatar--placeholder">
+                  {user?.name[0]}
+                </div>
+              )
+            )}
+          </div>
+          <span className="communities__card-members">
+            {community.member_count} members
+          </span>
+        </div>
+      </CardBody>
+      <CardFooter>
+        {status === "joined" ? (
+          <>
+            <Link to={`/communities/${community.community_id}`}>
+              <Button variant="primary" size="sm">View Community</Button>
+            </Link>
+            <span className="communities__joined-label">✓ Joined</span>
+          </>
+        ) : (
+          <Button variant="primary" size="sm">Join Community</Button>
+        )}
+      </CardFooter>
+    </Card>
   );
 }

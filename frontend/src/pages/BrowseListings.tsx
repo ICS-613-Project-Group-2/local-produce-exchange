@@ -51,12 +51,6 @@ export default function BrowseListings() {
     return new Date(b.date_posted).getTime() - new Date(a.date_posted).getTime();
   });
 
-  // Expiring soon (top section)
-  const expiringSoon = filteredListings.filter((l) => {
-    const daysLeft = Math.ceil((new Date(l.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return daysLeft <= 2 && daysLeft >= 0;
-  });
-
   // Group all filtered listings by community (including expiring)
   const userCommunities = mockCommunities.filter((c) => !c.is_private || c.community_id <= 3);
   const listingsByCommunity = userCommunities

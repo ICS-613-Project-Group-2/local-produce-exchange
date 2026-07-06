@@ -7,6 +7,7 @@ import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
 import ReviewModal from "../components/feedback/ReviewModal";
 import { mockListings, mockClaimRequests, getUserById, getCommunityById } from "../data/mockData";
+import { displayName } from "../data/utils";
 import "./ListingHistory.css";
 
 const CURRENT_USER_ID = 1;
@@ -114,7 +115,7 @@ export default function ListingHistory() {
     const otherUser = item.other_user_id ? getUserById(item.other_user_id) : null;
     setReviewModal({
       open: true,
-      recipientName: otherUser?.name || "User",
+      recipientName: otherUser?.name ? displayName(otherUser.name) : "User",
       listingName: item.name,
     });
   }
@@ -224,7 +225,7 @@ export default function ListingHistory() {
                         ) : (
                           <span className="history__other-avatar history__other-avatar--placeholder">{otherUser.name[0]}</span>
                         )}
-                        {item.type === "shared" ? `Claimed by ${otherUser.name}` : `From ${otherUser.name}`}
+                        {item.type === "shared" ? `Claimed by ${displayName(otherUser.name)}` : `From ${displayName(otherUser.name)}`}
                       </span>
                     )}
                     <span className="history__date">{timeAgo(item.date)}</span>

@@ -13,6 +13,7 @@ import {
   getUserById,
   getListingById,
 } from "../data/mockData";
+import { displayName } from "../data/utils";
 import "./Dashboard.css";
 
 const CURRENT_USER_ID = 1;
@@ -277,7 +278,7 @@ export default function Dashboard() {
                     <CardBody>
                       <div className="dashboard__message-row">
                         <div className="dashboard__message-info">
-                          <span className="dashboard__message-name">{otherUser?.name}</span>
+                          <span className="dashboard__message-name">{displayName(otherUser?.name || "Unknown")}</span>
                           {listing && <span className="dashboard__message-listing">Re: {listing.name}</span>}
                         </div>
                         <p className="dashboard__message-preview">

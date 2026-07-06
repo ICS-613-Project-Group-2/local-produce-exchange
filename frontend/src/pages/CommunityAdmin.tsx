@@ -14,6 +14,7 @@ import {
   getUserById,
   getUserRole,
 } from "../data/mockData";
+import { displayName } from "../data/utils";
 import type { Membership, JoinRequest } from "../data/types";
 import "./CommunityAdmin.css";
 
@@ -124,7 +125,7 @@ function MembersSection({ communityId }: { communityId: number }) {
                   <div className="admin__member-avatar admin__member-avatar--placeholder">{user.name[0]}</div>
                 )}
                 <div>
-                  <span className="admin__member-name">{user.name} {isCurrentUser && "(You)"}</span>
+                  <span className="admin__member-name">{displayName(user.name)} {isCurrentUser && "(You)"}</span>
                   <span className="admin__member-date">Joined {new Date(membership.date_joined).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -153,7 +154,7 @@ function MembersSection({ communityId }: { communityId: number }) {
         open={!!kickModal}
         onOpenChange={() => setKickModal(null)}
         title="Remove Member"
-        description={`Are you sure you want to remove ${kickUser?.name} from this community?`}
+        description={`Are you sure you want to remove ${kickUser?.name ? displayName(kickUser.name) : "this user"} from this community?`}
       >
         <p>They will lose access to community listings and posts. They can request to rejoin later.</p>
         <ModalFooter>
@@ -194,7 +195,7 @@ function RequestsSection({ communityId }: { communityId: number }) {
                     <div className="admin__member-avatar admin__member-avatar--placeholder">{user?.name[0] || "?"}</div>
                   )}
                   <div>
-                    <span className="admin__member-name">{user?.name}</span>
+                    <span className="admin__member-name">{displayName(user?.name || "Unknown")}</span>
                     <span className="admin__member-date">Requested {new Date(request.request_date).toLocaleDateString()}</span>
                   </div>
                 </div>

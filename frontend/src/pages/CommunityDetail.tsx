@@ -13,6 +13,7 @@ import {
   getUserRole,
   getUserById,
 } from "../data/mockData";
+import { displayName } from "../data/utils";
 import "./CommunityDetail.css";
 
 // Simulate logged-in user as Lily Chen (user_id 1)
@@ -240,7 +241,7 @@ function PostsTab({ communityId }: { communityId: number }) {
                         </div>
                       )}
                       <div>
-                        <span className="community-detail__post-name">{author?.name}</span>
+                        <span className="community-detail__post-name">{displayName(author?.name || "Unknown")}</span>
                         <span className="community-detail__post-time">
                           {new Date(post.timestamp).toLocaleDateString()}
                         </span>
@@ -276,7 +277,7 @@ function MembersTab({ communityId }: { communityId: number }) {
               </div>
             )}
             <div className="community-detail__member-info">
-              <span className="community-detail__member-name">{user.name}</span>
+              <span className="community-detail__member-name">{displayName(user.name)}</span>
               {user.location && <span className="community-detail__member-location">📍 {user.location}</span>}
             </div>
             <StatusBadge

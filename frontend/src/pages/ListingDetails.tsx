@@ -5,6 +5,7 @@ import Card, { CardBody, CardImage, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import FormField, { Input } from "../components/ui/FormField";
 import { getListingById, getUserById, getCommunityById, mockListings, mockClaimRequests } from "../data/mockData";
+import { displayName } from "../data/utils";
 import "./ListingDetails.css";
 
 const CURRENT_USER_ID = 1;
@@ -162,7 +163,7 @@ export default function ListingDetails() {
                     </div>
                   )}
                   <div className="listing-details__owner-info">
-                    <h3>{owner.name}</h3>
+                    <h3>{displayName(owner.name)}</h3>
                     {owner.location && <p>📍 {owner.location}</p>}
                     {owner.rating && <p>⭐ {owner.rating} rating</p>}
                   </div>
@@ -183,7 +184,7 @@ export default function ListingDetails() {
                   const claimant = getUserById(claim.requester_user_id);
                   return (
                     <div key={claim.request_id} className="listing-details__claim-item">
-                      <span>{claimant?.name || "Unknown"}</span>
+                      <span>{displayName(claimant?.name || "Unknown")}</span>
                       <span>{claim.quantity_requested} {listing.unit}</span>
                       <StatusBadge status={claim.status} />
                     </div>

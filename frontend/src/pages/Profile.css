@@ -39,6 +39,10 @@
   gap: var(--space-5);
 }
 
+.profile__avatar-wrapper {
+  position: relative;
+}
+
 .profile__avatar {
   width: 80px;
   height: 80px;
@@ -67,6 +71,56 @@
 .profile__email {
   font-size: var(--font-size-body);
   color: var(--color-text-muted);
+}
+
+/* Stats */
+.profile__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.profile__stat {
+  text-align: center;
+}
+
+.profile__stat-number {
+  display: block;
+  font-size: var(--font-size-section-heading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.profile__stat-label {
+  font-size: var(--font-size-badge);
+  color: var(--color-text-muted);
+}
+
+/* Communities */
+.profile__communities-list {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.profile__community-chip {
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-primary-softer);
+  color: var(--color-primary-dark);
+  border-radius: 999px;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.profile__community-chip:hover {
+  background-color: var(--color-primary-light);
+  text-decoration: none;
 }
 
 /* Sections */
@@ -100,7 +154,8 @@
 }
 
 .profile__review-rating {
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-body);
+  color: var(--color-secondary);
 }
 
 .profile__review-comment {
@@ -143,11 +198,18 @@
 .profile__photo-upload {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
-.profile__file-input {
-  font-size: var(--font-size-body);
+.profile__photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.profile__photo-hint {
+  font-size: var(--font-size-badge);
+  color: var(--color-text-muted);
 }
 
 .profile__form-actions {

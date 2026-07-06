@@ -1,7 +1,27 @@
+.messages__search {
+  margin-bottom: var(--space-5);
+  max-width: 400px;
+}
+
+.messages__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.messages__section-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-3);
+}
+
 .messages__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .messages__thread-link {
@@ -14,13 +34,18 @@
   text-decoration: none;
 }
 
-.messages__thread-link:hover .card {
-  border-color: var(--color-primary-light);
-  box-shadow: var(--shadow-elevated);
+.messages__thread-card {
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.messages__thread--unread {
+.messages__thread-link:hover .messages__thread-card {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-card);
+}
+
+.messages__thread-card--unread {
   border-left: 3px solid var(--color-secondary);
+  background-color: var(--color-primary-softer);
 }
 
 .messages__thread {
@@ -64,14 +89,18 @@
   font-size: var(--font-size-body);
 }
 
+.messages__thread-card--unread .messages__thread-name {
+  color: var(--color-text);
+}
+
 .messages__thread-time {
-  font-size: var(--font-size-helper);
+  font-size: var(--font-size-badge);
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .messages__thread-listing {
-  font-size: var(--font-size-label);
+  font-size: var(--font-size-badge);
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-1);
@@ -83,6 +112,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.messages__thread-card--unread .messages__thread-preview {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
 }
 
 .messages__unread-dot {
