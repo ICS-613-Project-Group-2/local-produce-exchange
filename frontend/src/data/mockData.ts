@@ -1,4 +1,4 @@
-import type { User, Community, Listing, ClaimRequest, Notification, MessageThread } from "./types";
+import type { User, Community, Listing, ClaimRequest, Notification, MessageThread, CommunityPost, Membership, JoinRequest } from "./types";
 
 export const mockUsers: User[] = [
   {
@@ -7,7 +7,7 @@ export const mockUsers: User[] = [
     email: "lily@example.com",
     profile_photo_id: 1,
     profile_photo_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face",
-    location: "Elm Street",
+    location: "Mānoa Valley",
     rating: 4.8,
   },
   {
@@ -16,7 +16,7 @@ export const mockUsers: User[] = [
     email: "oliver@example.com",
     profile_photo_id: 2,
     profile_photo_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    location: "Campus Area",
+    location: "UH Mānoa",
     rating: 4.5,
   },
   {
@@ -25,7 +25,7 @@ export const mockUsers: User[] = [
     email: "rose@example.com",
     profile_photo_id: 3,
     profile_photo_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    location: "Downtown",
+    location: "Mānoa",
     rating: 4.9,
   },
   {
@@ -42,17 +42,17 @@ export const mockUsers: User[] = [
 export const mockCommunities: Community[] = [
   {
     community_id: 1,
-    name: "Neighborhood Garden Share",
+    name: "Mānoa Valley Garden Share",
     is_private: false,
-    description: "A community for sharing backyard garden produce with neighbors in the Elm Street area.",
+    description: "Neighbors in Mānoa Valley sharing backyard garden produce. From East Mānoa Road to Woodlawn — if you grow it, share it!",
     member_count: 42,
     banner_url: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=300&fit=crop",
   },
   {
     community_id: 2,
-    name: "Campus Food Exchange",
+    name: "UH Mānoa Food Exchange",
     is_private: false,
-    description: "Students and faculty sharing surplus food near campus. Reduce waste, save money.",
+    description: "Students and faculty at UH Mānoa sharing surplus food on campus. Reduce waste, save money, eat fresh.",
     member_count: 128,
     banner_url: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&h=300&fit=crop",
   },
@@ -79,7 +79,7 @@ export const mockListings: Listing[] = [
     status: "available",
     expiration_date: "2026-07-06",
     date_posted: "2026-07-01",
-    pickup_location: "123 Elm Street, front porch",
+    pickup_location: "2845 Oahu Ave, front porch",
     photo_url: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop",
   },
   {
@@ -94,7 +94,7 @@ export const mockListings: Listing[] = [
     status: "expiring-soon",
     expiration_date: "2026-07-03",
     date_posted: "2026-06-30",
-    pickup_location: "123 Elm Street, side gate",
+    pickup_location: "2845 Oahu Ave, side gate",
     photo_url: "https://images.unsplash.com/photo-1563252722-6434563a985d?w=400&h=300&fit=crop",
   },
   {
@@ -109,7 +109,7 @@ export const mockListings: Listing[] = [
     status: "available",
     expiration_date: "2026-07-04",
     date_posted: "2026-07-02",
-    pickup_location: "Student Center, Room 104",
+    pickup_location: "Campus Center, Room 104",
     photo_url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop",
   },
   {
@@ -124,7 +124,7 @@ export const mockListings: Listing[] = [
     status: "available",
     expiration_date: "2026-07-05",
     date_posted: "2026-07-01",
-    pickup_location: "Apartment 3B, buzz #302",
+    pickup_location: "Hale Aloha, buzz #302",
     photo_url: "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&h=300&fit=crop",
   },
   {
@@ -154,7 +154,7 @@ export const mockListings: Listing[] = [
     status: "reserved",
     expiration_date: "2026-07-08",
     date_posted: "2026-06-29",
-    pickup_location: "456 Oak Ave, front steps",
+    pickup_location: "3142 Woodlawn Dr, front steps",
     photo_url: "https://images.unsplash.com/photo-1590502593747-42a996133562?w=400&h=300&fit=crop",
   },
   {
@@ -169,7 +169,7 @@ export const mockListings: Listing[] = [
     status: "completed",
     expiration_date: "2026-12-01",
     date_posted: "2026-06-20",
-    pickup_location: "123 Elm Street, front porch",
+    pickup_location: "2845 Oahu Ave, front porch",
     photo_url: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&h=300&fit=crop",
   },
 ];
@@ -239,6 +239,60 @@ export const mockNotifications: Notification[] = [
   },
 ];
 
+export const mockPosts: CommunityPost[] = [
+  {
+    post_id: 1,
+    community_id: 1,
+    user_id: 1,
+    content: "Just planted a new row of cherry tomatoes! Should have extras to share in about 3 weeks. 🍅",
+    timestamp: "2026-07-01T08:00:00",
+  },
+  {
+    post_id: 2,
+    community_id: 1,
+    user_id: 3,
+    content: "Reminder: if you're picking up produce from someone's porch, please text them when you arrive and take only what was agreed upon. Let's keep things friendly!",
+    timestamp: "2026-06-30T14:00:00",
+  },
+  {
+    post_id: 3,
+    community_id: 2,
+    user_id: 2,
+    content: "Anyone have extra herbs? I'm making pesto this weekend and could use some basil or parsley.",
+    timestamp: "2026-07-02T09:30:00",
+  },
+  {
+    post_id: 4,
+    community_id: 2,
+    user_id: 3,
+    content: "Welcome to all the new members this week! Check out the listings tab to see what's available. Don't hesitate to post your own surplus.",
+    timestamp: "2026-07-01T10:00:00",
+  },
+  {
+    post_id: 5,
+    community_id: 3,
+    user_id: 4,
+    content: "We received a large canned goods donation this morning. Listing it now — first come, first served for pantry volunteers.",
+    timestamp: "2026-07-01T07:00:00",
+  },
+];
+
+export const mockMemberships: Membership[] = [
+  { user_id: 1, community_id: 1, role: "admin", date_joined: "2026-01-15" },
+  { user_id: 3, community_id: 1, role: "member", date_joined: "2026-02-20" },
+  { user_id: 2, community_id: 1, role: "member", date_joined: "2026-03-10" },
+  { user_id: 1, community_id: 2, role: "member", date_joined: "2026-02-01" },
+  { user_id: 2, community_id: 2, role: "member", date_joined: "2026-02-05" },
+  { user_id: 3, community_id: 2, role: "admin", date_joined: "2026-01-20" },
+  { user_id: 4, community_id: 3, role: "admin", date_joined: "2026-01-01" },
+  { user_id: 1, community_id: 3, role: "member", date_joined: "2026-03-15" },
+];
+
+export const mockJoinRequests: JoinRequest[] = [
+  { request_id: 1, community_id: 3, user_id: 2, status: "pending", request_date: "2026-07-01" },
+  { request_id: 2, community_id: 3, user_id: 3, status: "pending", request_date: "2026-06-30" },
+];
+
 export const mockThreads: MessageThread[] = [
   {
     thread_id: 1,
@@ -261,7 +315,7 @@ export const mockThreads: MessageThread[] = [
       { message_id: 5, thread_id: 2, sender_user_id: 2, content: "Hey Rose! Could I grab 5 of the Meyer lemons? I want to make lemonade this weekend.", timestamp: "2026-07-01T14:00:00" },
       { message_id: 6, thread_id: 2, sender_user_id: 3, content: "Of course! They're really juicy this year. Can you pick up Saturday morning?", timestamp: "2026-07-01T14:30:00" },
       { message_id: 7, thread_id: 2, sender_user_id: 2, content: "Saturday morning works. What time?", timestamp: "2026-07-01T15:00:00" },
-      { message_id: 8, thread_id: 2, sender_user_id: 3, content: "How about 10am? I'll have them in a bag by the front steps at 456 Oak Ave.", timestamp: "2026-07-01T15:15:00" },
+      { message_id: 8, thread_id: 2, sender_user_id: 3, content: "How about 10am? I'll have them in a bag by the front steps at 3142 Woodlawn Dr.", timestamp: "2026-07-01T15:15:00" },
       { message_id: 9, thread_id: 2, sender_user_id: 2, content: "Perfect, see you then! Thanks 🍋", timestamp: "2026-07-01T15:20:00" },
     ],
   },
@@ -306,4 +360,23 @@ export function getThreadById(id: number): MessageThread | undefined {
 
 export function getThreadsForUser(userId: number): MessageThread[] {
   return mockThreads.filter((t) => t.participant_ids.includes(userId));
+}
+
+export function getPostsByCommunity(communityId: number): CommunityPost[] {
+  return mockPosts.filter((p) => p.community_id === communityId);
+}
+
+export function getMembersByCommunity(communityId: number): Membership[] {
+  return mockMemberships.filter((m) => m.community_id === communityId);
+}
+
+export function getUserRole(userId: number, communityId: number): string | null {
+  const membership = mockMemberships.find(
+    (m) => m.user_id === userId && m.community_id === communityId
+  );
+  return membership ? membership.role : null;
+}
+
+export function getJoinRequestsByCommunity(communityId: number): JoinRequest[] {
+  return mockJoinRequests.filter((r) => r.community_id === communityId && r.status === "pending");
 }
