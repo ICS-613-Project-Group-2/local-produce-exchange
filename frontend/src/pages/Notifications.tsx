@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import EmptyState from "../components/feedback/EmptyState";
@@ -17,6 +18,24 @@ const TYPE_ICONS: Record<string, string> = {
   listing: "🧺",
 };
 
+const TYPE_LINKS: Record<string, string> = {
+  message: "/messages",
+  claim: "/history",
+  community: "/communities",
+  listing: "/browse",
+};
+
+function getDateGroup(timestamp: string): string {
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return "Earlier";
+}
+
 export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [notifications, setNotifications] = useState<Notification[]>(
@@ -27,6 +46,16 @@ export default function Notifications() {
     ? notifications
     : notifications.filter((n) => n.type === activeFilter);
 
+  // Group by date
+  const grouped = filteredNotifications.reduce<Record<string, Notification[]>>((acc, n) => {
+    const group = getDateGroup(n.timestamp);
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(n);
+    return acc;
+  }, {});
+
+  const groupOrder = ["Today", "Yesterday", "Earlier"];
+
   function handleMarkAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   }
@@ -35,6 +64,10 @@ export default function Notifications() {
     setNotifications((prev) =>
       prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
     );
+  }
+
+  function handleDismiss(id: number) {
+    setNotifications((prev) => prev.filter((n) => n.notification_id !== id));
   }
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -50,7 +83,7 @@ export default function Notifications() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Notifications"
+        title={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         subtitle="Review recent updates about your listings, communities, and exchanges"
         action={
           unreadCount > 0 ? (
@@ -82,23 +115,46 @@ export default function Notifications() {
           description="Updates about your listings, messages, community requests, and exchanges will appear here."
         />
       ) : (
-        <div className="notifications__list">
-          {filteredNotifications.map((notification) => (
-            <div
-              key={notification.notification_id}
-              className={`notifications__item ${!notification.is_read ? "notifications__item--unread" : ""}`}
-              onClick={() => handleMarkRead(notification.notification_id)}
-            >
-              <span className="notifications__icon">{TYPE_ICONS[notification.type] || "🔔"}</span>
-              <div className="notifications__content">
-                <p className="notifications__text">{notification.content}</p>
-                <span className="notifications__time">
-                  {new Date(notification.timestamp).toLocaleDateString()} · {new Date(notification.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
+        <div className="notifications__grouped">
+          {groupOrder.map((group) => {
+            const items = grouped[group];
+            if (!items || items.length === 0) return null;
+            return (
+              <div key={group} className="notifications__group">
+                <h3 className="notifications__group-label">{group}</h3>
+                <div className="notifications__list">
+                  {items.map((notification) => (
+                    <div
+                      key={notification.notification_id}
+                      className={`notifications__item ${!notification.is_read ? "notifications__item--unread" : ""}`}
+                    >
+                      <Link
+                        to={TYPE_LINKS[notification.type] || "/dashboard"}
+                        className="notifications__item-link"
+                        onClick={() => handleMarkRead(notification.notification_id)}
+                      >
+                        <span className="notifications__icon">{TYPE_ICONS[notification.type] || "🔔"}</span>
+                        <div className="notifications__content">
+                          <p className="notifications__text">{notification.content}</p>
+                          <span className="notifications__time">
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        {!notification.is_read && <span className="notifications__unread-dot" aria-label="Unread" />}
+                      </Link>
+                      <button
+                        className="notifications__dismiss"
+                        onClick={() => handleDismiss(notification.notification_id)}
+                        aria-label="Dismiss notification"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {!notification.is_read && <span className="notifications__unread-dot" aria-label="Unread" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
