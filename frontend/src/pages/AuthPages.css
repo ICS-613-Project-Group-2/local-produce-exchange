@@ -221,3 +221,8 @@
   opacity: 0.9;
   line-height: 1.6;
 }
+
+.auth-page__submit-error {
+  color: var(--color-error);
+  font-size: var(--font-size-body);
+}

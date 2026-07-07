@@ -1,11 +1,19 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 
 interface NavbarProps {
   isLoggedIn: boolean;
+  onLogout?: () => void;
 }
 
-export default function Navbar({ isLoggedIn }: NavbarProps) {
+export default function Navbar({ isLoggedIn, onLogout }: NavbarProps) {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    onLogout?.();
+    navigate("/");
+  }
+
   return (
     <nav className="navbar" aria-label="Main navigation">
       <div className="navbar__inner">
@@ -54,6 +62,11 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
                 </NavLink>
+              </li>
+              <li>
+                <button type="button" className="navbar__link navbar__link--button" onClick={handleLogout}>
+                  Log Out
+                </button>
               </li>
             </>
           ) : (

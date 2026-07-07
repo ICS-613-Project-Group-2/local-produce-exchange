@@ -83,3 +83,10 @@
 .navbar__link--icon {
   padding: var(--space-2);
 }
+
+.navbar__link--button {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}

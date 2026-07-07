@@ -4,6 +4,8 @@
 # Ignore Python bytecode files
 *__pycache__/
 
+**/*.env
+
 # Ignore vscode files
 *.vscode
 

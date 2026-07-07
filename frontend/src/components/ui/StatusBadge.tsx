@@ -1,6 +1,6 @@
 import "./StatusBadge.css";
 
-type BadgeStatus =
+export type BadgeStatus =
   | "available"
   | "reserved"
   | "expiring-soon"

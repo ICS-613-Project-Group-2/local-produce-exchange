@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import FormField, { Input } from "../components/ui/FormField";
+import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../lib/api";
 import "./AuthPages.css";
 
 interface FormData {
@@ -27,6 +29,7 @@ function getPasswordStrength(password: string): { level: number; label: string }
 }
 
 export default function SignUp() {
+  const { register } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     username: "",
     name: "",
@@ -36,6 +39,8 @@ export default function SignUp() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -73,14 +78,31 @@ export default function SignUp() {
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      await register(formData.username, formData.email, formData.password);
+      setSubmitted(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setSubmitError("An account with this email already exists.");
+      } else if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Something went wrong while creating your account. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {

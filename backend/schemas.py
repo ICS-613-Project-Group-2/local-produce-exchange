@@ -9,16 +9,22 @@ class RegisterUser(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 class LoginUser(BaseModel):
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid",
-    )
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    password: str
+
+class GetUser(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
     user_id: int
     name: str
     email: EmailStr
     profile_photo_id: int | None = None
 
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 class CreateListing(BaseModel):
     model_config = ConfigDict(
@@ -88,16 +94,20 @@ class CreateCommunity(BaseModel):
     )
 
     name: str
+    description: str
+    location: str
+    guidelines: str
     is_private: bool = False
-
 
 class CommunityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     community_id: int
     name: str
+    description: str
+    location: str
+    guidelines: str
     is_private: bool | None = False
-
 
 class MembershipResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
