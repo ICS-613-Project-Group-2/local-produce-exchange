@@ -25,6 +25,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(Text, nullable=False)
     profile_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
+    location = Column(String(150), nullable=True)
 
 
 class Community(Base):
@@ -36,6 +37,7 @@ class Community(Base):
     location = Column(String(100), nullable=False)
     guidelines = Column(String(250), nullable=False)
     is_private = Column(Boolean, server_default=text("false"))
+    banner_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
 
 
 class Membership(Base):
@@ -65,6 +67,7 @@ class Listing(Base):
     name = Column(String(150), nullable=False)
     description = Column(Text, nullable=True)
     quantity = Column(Integer, nullable=False)
+    unit = Column(String(50), nullable=True)
     status = Column(String(50), server_default=text("'available'"))
     expiration_date = Column(Date, nullable=True)
     date_posted = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
@@ -132,6 +135,7 @@ class Notification(Base):
     content = Column(Text, nullable=False)
     timestamp = Column("timestamp", DateTime, server_default=text("CURRENT_TIMESTAMP"))
     is_read = Column(Boolean, server_default=text("false"))
+    type = Column(String(50), nullable=True)
 
 
 class Review(Base):
@@ -192,3 +196,39 @@ class Photo(Base):
 
     photo_id = Column(Integer, primary_key=True)
     image_link = Column(Text, nullable=False)
+
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+
+    post_id = Column(Integer, primary_key=True)
+    community_id = Column(
+        Integer,
+        ForeignKey("communities.community_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    content = Column(Text, nullable=False)
+    timestamp = Column("timestamp", DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+
+class JoinRequest(Base):
+    __tablename__ = "join_requests"
+
+    request_id = Column(Integer, primary_key=True)
+    community_id = Column(
+        Integer,
+        ForeignKey("communities.community_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    status = Column(String(50), server_default=text("'pending'"))
+    request_date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
