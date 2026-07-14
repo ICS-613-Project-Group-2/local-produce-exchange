@@ -20,7 +20,7 @@ export default function CreateCommunity() {
     name: "",
     description: "",
     location: "",
-    is_private: "false",
+    is_private: "true",
     guidelines: "",
     invite_email: "",
   });
@@ -124,19 +124,6 @@ export default function CreateCommunity() {
             <section className="create-community__section">
               <h2>Privacy Setting</h2>
               <div className="create-community__privacy-options">
-                <label className={`create-community__privacy-option ${formData.is_private === "false" ? "create-community__privacy-option--selected" : ""}`}>
-                  <input
-                    type="radio"
-                    name="is_private"
-                    value="false"
-                    checked={formData.is_private === "false"}
-                    onChange={handleChange}
-                  />
-                  <div>
-                    <strong>Public</strong>
-                    <p>Any logged-in user can join freely and browse listings.</p>
-                  </div>
-                </label>
                 <label className={`create-community__privacy-option ${formData.is_private === "true" ? "create-community__privacy-option--selected" : ""}`}>
                   <input
                     type="radio"
@@ -148,6 +135,19 @@ export default function CreateCommunity() {
                   <div>
                     <strong>Private</strong>
                     <p>Users must request access or receive an invite to join.</p>
+                  </div>
+                </label>
+                <label className={`create-community__privacy-option ${formData.is_private === "false" ? "create-community__privacy-option--selected" : ""}`}>
+                  <input
+                    type="radio"
+                    name="is_private"
+                    value="false"
+                    checked={formData.is_private === "false"}
+                    onChange={handleChange}
+                  />
+                  <div>
+                    <strong>Public</strong>
+                    <p>Any logged-in user can join freely and browse listings.</p>
                   </div>
                 </label>
               </div>
