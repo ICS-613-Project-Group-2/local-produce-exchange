@@ -21,6 +21,9 @@ class GetUser(BaseModel):
     name: str
     email: EmailStr
     profile_photo_id: int | None = None
+    profile_photo_url: str | None = None
+    location: str | None = None
+    rating: float | None = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -35,6 +38,7 @@ class CreateListing(BaseModel):
     name: str
     description: str | None = None
     quantity: int = Field(gt=0)
+    unit: str | None = None
     expiration_date: date | None = None
     pickup_location: str | None = None
     category: str | None = None
@@ -50,11 +54,13 @@ class ListingResponse(BaseModel):
     name: str
     description: str | None
     quantity: int
+    unit: str | None = None
     status: str | None
     expiration_date: date | None
     date_posted: datetime | None
     pickup_location: str | None
     category: str | None
+    photo_url: str | None = None
 
 class ListingUpdate(BaseModel):
     model_config = ConfigDict(
@@ -65,6 +71,7 @@ class ListingUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     quantity: int | None = None
+    unit: str | None = None
     status: str | None = None
 
 
@@ -108,6 +115,8 @@ class CommunityResponse(BaseModel):
     location: str
     guidelines: str
     is_private: bool | None = False
+    member_count: int | None = None
+    banner_url: str | None = None
 
 class MembershipResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -137,3 +146,76 @@ class InvitationResponse(BaseModel):
     status: str | None
     sent_date: datetime | None
     expiration_date: datetime | None
+
+
+# --- Notification schemas ---
+
+class NotificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    notification_id: int
+    user_id: int | None
+    message_id: int | None = None
+    claim_request_id: int | None = None
+    content: str
+    timestamp: datetime | None
+    is_read: bool
+    type: str | None = None
+
+
+# --- MessageThread schemas ---
+
+class MessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    message_id: int
+    thread_id: int
+    sender_user_id: int | None
+    content: str
+    timestamp: datetime | None
+
+
+class CreateMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(..., min_length=1)
+
+
+class MessageThreadResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    thread_id: int
+    claim_request_id: int | None
+    listing_id: int | None = None
+    participant_ids: list[int] = []
+    messages: list[MessageResponse] = []
+
+
+# --- CommunityPost schemas ---
+
+class CreateCommunityPost(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(..., min_length=1)
+
+
+class CommunityPostResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    post_id: int
+    community_id: int
+    user_id: int
+    content: str
+    timestamp: datetime | None
+
+
+# --- JoinRequest schemas ---
+
+class JoinRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    request_id: int
+    community_id: int
+    user_id: int
+    status: str | None
+    request_date: datetime | None

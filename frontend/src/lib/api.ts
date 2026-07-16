@@ -74,6 +74,9 @@ export interface User {
   name: string;
   email: string;
   profile_photo_id: number | null;
+  profile_photo_url: string | null;
+  location: string | null;
+  rating: number | null;
 }
 
 export function registerUser(payload: RegisterPayload): Promise<User> {
