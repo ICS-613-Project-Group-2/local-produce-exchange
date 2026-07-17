@@ -104,7 +104,7 @@ class CreateCommunity(BaseModel):
     description: str
     location: str
     guidelines: str
-    is_private: bool = False
+    is_private: bool = True
 
 class CommunityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -114,9 +114,14 @@ class CommunityResponse(BaseModel):
     description: str
     location: str
     guidelines: str
-    is_private: bool | None = False
-    member_count: int | None = None
+    is_private: bool | None = True
+    member_count: int
     banner_url: str | None = None
+
+# class for listing communities in GET /v1/communities
+class CommunitiesListResponse(BaseModel):    
+    my_communities: list[CommunityResponse]
+    public_communities: list[CommunityResponse]
 
 class MembershipResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -27,7 +27,6 @@ class User(Base):
     profile_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
     location = Column(String(150), nullable=True)
 
-
 class Community(Base):
     __tablename__ = "communities"
 
@@ -36,9 +35,8 @@ class Community(Base):
     description = Column(String(250), nullable=False)
     location = Column(String(100), nullable=False)
     guidelines = Column(String(250), nullable=False)
-    is_private = Column(Boolean, server_default=text("false"))
+    is_private = Column(Boolean, server_default=text("true"))
     banner_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
-
 
 class Membership(Base):
     __tablename__ = "memberships"
