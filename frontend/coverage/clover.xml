@@ -1,0 +1,1057 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1784577029544" clover="3.2.0">
+  <project timestamp="1784577029545" name="All files">
+    <metrics statements="844" coveredstatements="707" conditionals="881" coveredconditionals="620" methods="339" coveredmethods="260" elements="2064" coveredelements="1587" complexity="0" loc="844" ncloc="844" packages="8" files="61" classes="61"/>
+    <package name="src.components.feedback">
+      <metrics statements="27" coveredstatements="21" conditionals="23" coveredconditionals="23" methods="10" coveredmethods="8"/>
+      <file name="EmptyState.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/feedback/EmptyState.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="EmptyState.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/feedback/EmptyState.tsx">
+        <metrics statements="1" coveredstatements="1" conditionals="7" coveredconditionals="7" methods="1" coveredmethods="1"/>
+        <line num="18" count="24" type="stmt"/>
+      </file>
+      <file name="ReviewModal.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/feedback/ReviewModal.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="ReviewModal.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/feedback/ReviewModal.tsx">
+        <metrics statements="26" coveredstatements="20" conditionals="16" coveredconditionals="16" methods="9" coveredmethods="7"/>
+        <line num="22" count="51" type="stmt"/>
+        <line num="23" count="51" type="stmt"/>
+        <line num="24" count="51" type="stmt"/>
+        <line num="25" count="51" type="stmt"/>
+        <line num="26" count="51" type="stmt"/>
+        <line num="29" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="2" type="stmt"/>
+        <line num="31" count="2" type="stmt"/>
+        <line num="33" count="3" type="stmt"/>
+        <line num="34" count="3" type="stmt"/>
+        <line num="35" count="3" type="stmt"/>
+        <line num="39" count="2" type="stmt"/>
+        <line num="41" count="2" type="stmt"/>
+        <line num="42" count="0" type="stmt"/>
+        <line num="43" count="0" type="stmt"/>
+        <line num="44" count="0" type="stmt"/>
+        <line num="45" count="0" type="stmt"/>
+        <line num="46" count="0" type="stmt"/>
+        <line num="50" count="51" type="cond" truecount="2" falsecount="0"/>
+        <line num="51" count="3" type="stmt"/>
+        <line num="63" count="48" type="stmt"/>
+        <line num="74" count="240" type="stmt"/>
+        <line num="78" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="79" count="5" type="stmt"/>
+        <line num="80" count="0" type="stmt"/>
+        <line num="98" count="14" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.components.layout">
+      <metrics statements="4" coveredstatements="4" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+      <file name="Navbar.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/layout/Navbar.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Navbar.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/layout/Navbar.tsx">
+        <metrics statements="4" coveredstatements="4" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="10" count="11" type="stmt"/>
+        <line num="13" count="2" type="stmt"/>
+        <line num="14" count="2" type="stmt"/>
+        <line num="17" count="11" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.components.ui">
+      <metrics statements="20" coveredstatements="20" conditionals="46" coveredconditionals="46" methods="16" coveredmethods="16"/>
+      <file name="Button.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Button.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Button.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Button.tsx">
+        <metrics statements="1" coveredstatements="1" conditionals="10" coveredconditionals="10" methods="1" coveredmethods="1"/>
+        <line num="22" count="2553" type="stmt"/>
+      </file>
+      <file name="Card.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Card.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Card.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Card.tsx">
+        <metrics statements="4" coveredstatements="4" conditionals="4" coveredconditionals="4" methods="4" coveredmethods="4"/>
+        <line num="16" count="1316" type="stmt"/>
+        <line num="30" count="544" type="stmt"/>
+        <line num="42" count="1313" type="stmt"/>
+        <line num="50" count="607" type="stmt"/>
+      </file>
+      <file name="FormField.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/FormField.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="FormField.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/FormField.tsx">
+        <metrics statements="3" coveredstatements="3" conditionals="17" coveredconditionals="17" methods="3" coveredmethods="3"/>
+        <line num="22" count="3817" type="stmt"/>
+        <line num="46" count="3113" type="stmt"/>
+        <line num="59" count="545" type="stmt"/>
+      </file>
+      <file name="Modal.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Modal.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Modal.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/Modal.tsx">
+        <metrics statements="2" coveredstatements="2" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
+        <line num="19" count="112" type="stmt"/>
+        <line num="47" count="43" type="stmt"/>
+      </file>
+      <file name="PageHeader.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/PageHeader.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="PageHeader.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/PageHeader.tsx">
+        <metrics statements="1" coveredstatements="1" conditionals="5" coveredconditionals="5" methods="1" coveredmethods="1"/>
+        <line num="16" count="452" type="stmt"/>
+      </file>
+      <file name="SearchBar.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/SearchBar.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="SearchBar.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/SearchBar.tsx">
+        <metrics statements="7" coveredstatements="7" conditionals="5" coveredconditionals="5" methods="4" coveredmethods="4"/>
+        <line num="17" count="174" type="stmt"/>
+        <line num="20" count="2" type="stmt"/>
+        <line num="21" count="2" type="stmt"/>
+        <line num="25" count="1" type="stmt"/>
+        <line num="26" count="1" type="stmt"/>
+        <line num="29" count="174" type="stmt"/>
+        <line num="51" count="98" type="stmt"/>
+      </file>
+      <file name="StatusBadge.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/StatusBadge.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="StatusBadge.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/components/ui/StatusBadge.tsx">
+        <metrics statements="2" coveredstatements="2" conditionals="3" coveredconditionals="3" methods="1" coveredmethods="1"/>
+        <line num="24" count="11" type="stmt"/>
+        <line num="45" count="1208" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.context">
+      <metrics statements="24" coveredstatements="23" conditionals="4" coveredconditionals="3" methods="8" coveredmethods="8"/>
+      <file name="AuthContext.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/context/AuthContext.tsx">
+        <metrics statements="24" coveredstatements="23" conditionals="4" coveredconditionals="3" methods="8" coveredmethods="8"/>
+        <line num="21" count="17" type="stmt"/>
+        <line num="24" count="463" type="stmt"/>
+        <line num="25" count="463" type="stmt"/>
+        <line num="27" count="463" type="stmt"/>
+        <line num="28" count="228" type="stmt"/>
+        <line num="29" count="228" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="226" type="stmt"/>
+        <line num="31" count="226" type="stmt"/>
+        <line num="34" count="2" type="stmt"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="37" count="2" type="stmt"/>
+        <line num="41" count="9" type="stmt"/>
+        <line num="42" count="6" type="stmt"/>
+        <line num="43" count="6" type="stmt"/>
+        <line num="44" count="6" type="stmt"/>
+        <line num="48" count="2" type="stmt"/>
+        <line num="49" count="2" type="stmt"/>
+        <line num="53" count="1" type="stmt"/>
+        <line num="54" count="1" type="stmt"/>
+        <line num="57" count="463" type="stmt"/>
+        <line num="67" count="467" type="stmt"/>
+        <line num="68" count="467" type="cond" truecount="1" falsecount="1"/>
+        <line num="69" count="0" type="stmt"/>
+        <line num="71" count="467" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.data">
+      <metrics statements="27" coveredstatements="26" conditionals="10" coveredconditionals="6" methods="23" coveredmethods="21"/>
+      <file name="mockData.ts" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/data/mockData.ts">
+        <metrics statements="22" coveredstatements="21" conditionals="8" coveredconditionals="4" methods="22" coveredmethods="20"/>
+        <line num="3" count="13" type="stmt"/>
+        <line num="69" count="13" type="stmt"/>
+        <line num="120" count="13" type="stmt"/>
+        <line num="318" count="13" type="stmt"/>
+        <line num="348" count="13" type="stmt"/>
+        <line num="423" count="13" type="stmt"/>
+        <line num="482" count="13" type="stmt"/>
+        <line num="499" count="13" type="stmt"/>
+        <line num="504" count="13" type="stmt"/>
+        <line num="570" count="1471" type="stmt"/>
+        <line num="574" count="1830" type="stmt"/>
+        <line num="578" count="382" type="stmt"/>
+        <line num="582" count="195" type="stmt"/>
+        <line num="586" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="590" count="23" type="stmt"/>
+        <line num="594" count="76" type="stmt"/>
+        <line num="598" count="288" type="stmt"/>
+        <line num="602" count="1484" type="stmt"/>
+        <line num="606" count="43" type="stmt"/>
+        <line num="607" count="43" type="cond" truecount="2" falsecount="0"/>
+        <line num="609" count="43" type="cond" truecount="1" falsecount="1"/>
+        <line num="613" count="4" type="cond" truecount="1" falsecount="1"/>
+      </file>
+      <file name="utils.ts" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/data/utils.ts">
+        <metrics statements="5" coveredstatements="5" conditionals="2" coveredconditionals="2" methods="1" coveredmethods="1"/>
+        <line num="8" count="258" type="stmt"/>
+        <line num="9" count="258" type="cond" truecount="2" falsecount="0"/>
+        <line num="10" count="256" type="stmt"/>
+        <line num="11" count="256" type="stmt"/>
+        <line num="12" count="256" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.lib">
+      <metrics statements="24" coveredstatements="23" conditionals="10" coveredconditionals="8" methods="9" coveredmethods="8"/>
+      <file name="api.ts" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/lib/api.ts">
+        <metrics statements="24" coveredstatements="23" conditionals="10" coveredconditionals="8" methods="9" coveredmethods="8"/>
+        <line num="1" count="18" type="stmt"/>
+        <line num="2" count="18" type="stmt"/>
+        <line num="5" count="255" type="stmt"/>
+        <line num="9" count="10" type="stmt"/>
+        <line num="13" count="55" type="stmt"/>
+        <line num="20" count="5" type="stmt"/>
+        <line num="21" count="5" type="stmt"/>
+        <line num="22" count="5" type="stmt"/>
+        <line num="27" count="24" type="stmt"/>
+        <line num="28" count="24" type="stmt"/>
+        <line num="29" count="24" type="stmt"/>
+        <line num="30" count="24" type="cond" truecount="2" falsecount="0"/>
+        <line num="31" count="9" type="stmt"/>
+        <line num="34" count="24" type="stmt"/>
+        <line num="39" count="23" type="cond" truecount="1" falsecount="1"/>
+        <line num="40" count="0" type="stmt"/>
+        <line num="43" count="23" type="stmt"/>
+        <line num="45" count="23" type="cond" truecount="2" falsecount="0"/>
+        <line num="47" count="5" type="cond" truecount="2" falsecount="1"/>
+        <line num="48" count="5" type="stmt"/>
+        <line num="51" count="18" type="stmt"/>
+        <line num="83" count="4" type="stmt"/>
+        <line num="90" count="10" type="stmt"/>
+        <line num="97" count="10" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.pages">
+      <metrics statements="708" coveredstatements="580" conditionals="784" coveredconditionals="530" methods="268" coveredmethods="194"/>
+      <file name="About.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/About.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="About.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/About.tsx">
+        <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
+        <line num="7" count="6" type="stmt"/>
+      </file>
+      <file name="AuthPages.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/AuthPages.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="BrowseListings.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/BrowseListings.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="BrowseListings.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/BrowseListings.tsx">
+        <metrics statements="38" coveredstatements="36" conditionals="49" coveredconditionals="38" methods="19" coveredmethods="17"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="18" count="46" type="stmt"/>
+        <line num="19" count="46" type="stmt"/>
+        <line num="20" count="46" type="stmt"/>
+        <line num="21" count="46" type="stmt"/>
+        <line num="24" count="46" type="stmt"/>
+        <line num="25" count="598" type="cond" truecount="2" falsecount="0"/>
+        <line num="29" count="46" type="cond" truecount="1" falsecount="1"/>
+        <line num="32" count="0" type="cond" truecount="0" falsecount="3"/>
+        <line num="39" count="46" type="cond" truecount="2" falsecount="0"/>
+        <line num="40" count="48" type="stmt"/>
+        <line num="44" count="46" type="stmt"/>
+        <line num="45" count="1280" type="cond" truecount="2" falsecount="0"/>
+        <line num="46" count="31" type="stmt"/>
+        <line num="48" count="1249" type="cond" truecount="2" falsecount="0"/>
+        <line num="49" count="30" type="stmt"/>
+        <line num="51" count="1219" type="stmt"/>
+        <line num="55" count="276" type="cond" truecount="2" falsecount="0"/>
+        <line num="56" count="46" type="stmt"/>
+        <line num="57" count="276" type="stmt"/>
+        <line num="59" count="3108" type="stmt"/>
+        <line num="61" count="276" type="stmt"/>
+        <line num="64" count="0" type="stmt"/>
+        <line num="67" count="46" type="stmt"/>
+        <line num="68" count="518" type="stmt"/>
+        <line num="70" count="46" type="stmt"/>
+        <line num="93" count="276" type="stmt"/>
+        <line num="96" count="4" type="stmt"/>
+        <line num="112" count="2" type="stmt"/>
+        <line num="121" count="1" type="stmt"/>
+        <line num="128" count="4" type="stmt"/>
+        <line num="154" count="263" type="stmt"/>
+        <line num="162" count="518" type="stmt"/>
+        <line num="175" count="518" type="stmt"/>
+        <line num="176" count="518" type="stmt"/>
+        <line num="178" count="518" type="cond" truecount="2" falsecount="0"/>
+        <line num="179" count="48" type="stmt"/>
+        <line num="203" count="470" type="stmt"/>
+      </file>
+      <file name="Communities.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Communities.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Communities.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Communities.tsx">
+        <metrics statements="15" coveredstatements="13" conditionals="21" coveredconditionals="14" methods="11" coveredmethods="9"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="16" count="13" type="stmt"/>
+        <line num="19" count="78" type="stmt"/>
+        <line num="21" count="13" type="cond" truecount="1" falsecount="1"/>
+        <line num="24" count="0" type="cond" truecount="0" falsecount="3"/>
+        <line num="30" count="65" type="stmt"/>
+        <line num="31" count="65" type="stmt"/>
+        <line num="34" count="0" type="stmt"/>
+        <line num="37" count="13" type="stmt"/>
+        <line num="75" count="39" type="stmt"/>
+        <line num="87" count="26" type="stmt"/>
+        <line num="99" count="65" type="stmt"/>
+        <line num="100" count="156" type="stmt"/>
+        <line num="102" count="65" type="stmt"/>
+        <line num="120" count="156" type="cond" truecount="1" falsecount="1"/>
+      </file>
+      <file name="CommunityAdmin.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CommunityAdmin.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="CommunityAdmin.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CommunityAdmin.tsx">
+        <metrics statements="62" coveredstatements="37" conditionals="52" coveredconditionals="31" methods="31" coveredmethods="11"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="26" count="21" type="stmt"/>
+        <line num="27" count="21" type="stmt"/>
+        <line num="28" count="21" type="stmt"/>
+        <line num="30" count="21" type="cond" truecount="2" falsecount="0"/>
+        <line num="31" count="1" type="stmt"/>
+        <line num="42" count="20" type="stmt"/>
+        <line num="43" count="20" type="cond" truecount="1" falsecount="1"/>
+        <line num="44" count="0" type="stmt"/>
+        <line num="56" count="20" type="stmt"/>
+        <line num="71" count="80" type="stmt"/>
+        <line num="74" count="6" type="stmt"/>
+        <line num="90" count="15" type="stmt"/>
+        <line num="91" count="15" type="stmt"/>
+        <line num="92" count="15" type="stmt"/>
+        <line num="95" count="0" type="stmt"/>
+        <line num="96" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="98" count="0" type="stmt"/>
+        <line num="99" count="0" type="stmt"/>
+        <line num="103" count="0" type="stmt"/>
+        <line num="104" count="0" type="stmt"/>
+        <line num="105" count="0" type="stmt"/>
+        <line num="106" count="0" type="stmt"/>
+        <line num="109" count="15" type="cond" truecount="2" falsecount="0"/>
+        <line num="111" count="15" type="stmt"/>
+        <line num="116" count="45" type="stmt"/>
+        <line num="117" count="45" type="cond" truecount="1" falsecount="1"/>
+        <line num="118" count="45" type="stmt"/>
+        <line num="119" count="45" type="stmt"/>
+        <line num="136" count="0" type="stmt"/>
+        <line num="143" count="1" type="stmt"/>
+        <line num="155" count="0" type="stmt"/>
+        <line num="161" count="0" type="stmt"/>
+        <line num="162" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="170" count="2" type="stmt"/>
+        <line num="171" count="2" type="stmt"/>
+        <line num="174" count="0" type="stmt"/>
+        <line num="175" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="176" count="0" type="stmt"/>
+        <line num="177" count="0" type="stmt"/>
+        <line num="180" count="2" type="stmt"/>
+        <line num="188" count="0" type="stmt"/>
+        <line num="189" count="0" type="stmt"/>
+        <line num="203" count="0" type="stmt"/>
+        <line num="206" count="0" type="stmt"/>
+        <line num="220" count="32" type="stmt"/>
+        <line num="221" count="32" type="stmt"/>
+        <line num="222" count="32" type="stmt"/>
+        <line num="225" count="1" type="stmt"/>
+        <line num="226" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="227" count="0" type="stmt"/>
+        <line num="228" count="0" type="stmt"/>
+        <line num="230" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="231" count="0" type="stmt"/>
+        <line num="232" count="0" type="stmt"/>
+        <line num="234" count="1" type="stmt"/>
+        <line num="235" count="1" type="stmt"/>
+        <line num="236" count="1" type="stmt"/>
+        <line num="237" count="1" type="stmt"/>
+        <line num="240" count="32" type="stmt"/>
+        <line num="254" count="28" type="cond" truecount="1" falsecount="1"/>
+        <line num="267" count="1" type="stmt"/>
+      </file>
+      <file name="CommunityDetail.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CommunityDetail.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="CommunityDetail.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CommunityDetail.tsx">
+        <metrics statements="39" coveredstatements="36" conditionals="50" coveredconditionals="36" methods="13" coveredmethods="12"/>
+        <line num="20" count="1" type="stmt"/>
+        <line num="25" count="24" type="stmt"/>
+        <line num="26" count="24" type="stmt"/>
+        <line num="27" count="24" type="stmt"/>
+        <line num="29" count="24" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="1" type="stmt"/>
+        <line num="46" count="23" type="stmt"/>
+        <line num="47" count="23" type="stmt"/>
+        <line num="48" count="23" type="stmt"/>
+        <line num="49" count="23" type="stmt"/>
+        <line num="52" count="23" type="cond" truecount="2" falsecount="2"/>
+        <line num="53" count="0" type="stmt"/>
+        <line num="74" count="23" type="stmt"/>
+        <line num="107" count="0" type="stmt"/>
+        <line num="113" count="5" type="stmt"/>
+        <line num="119" count="3" type="stmt"/>
+        <line num="134" count="15" type="stmt"/>
+        <line num="135" count="60" type="cond" truecount="2" falsecount="0"/>
+        <line num="138" count="15" type="cond" truecount="1" falsecount="1"/>
+        <line num="139" count="0" type="stmt"/>
+        <line num="153" count="15" type="stmt"/>
+        <line num="156" count="45" type="stmt"/>
+        <line num="182" count="36" type="stmt"/>
+        <line num="183" count="36" type="stmt"/>
+        <line num="184" count="36" type="stmt"/>
+        <line num="187" count="1" type="stmt"/>
+        <line num="188" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="189" count="1" type="stmt"/>
+        <line num="196" count="1" type="stmt"/>
+        <line num="197" count="1" type="stmt"/>
+        <line num="200" count="36" type="stmt"/>
+        <line num="211" count="30" type="stmt"/>
+        <line num="230" count="73" type="stmt"/>
+        <line num="231" count="73" type="stmt"/>
+        <line num="263" count="3" type="stmt"/>
+        <line num="265" count="3" type="stmt"/>
+        <line num="268" count="9" type="stmt"/>
+        <line num="269" count="9" type="cond" truecount="1" falsecount="1"/>
+        <line num="270" count="9" type="stmt"/>
+      </file>
+      <file name="CreateCommunity.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CreateCommunity.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="CreateCommunity.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CreateCommunity.tsx">
+        <metrics statements="22" coveredstatements="21" conditionals="22" coveredconditionals="20" methods="6" coveredmethods="6"/>
+        <line num="19" count="173" type="stmt"/>
+        <line num="27" count="173" type="stmt"/>
+        <line num="28" count="173" type="stmt"/>
+        <line num="31" count="154" type="stmt"/>
+        <line num="32" count="154" type="stmt"/>
+        <line num="33" count="154" type="cond" truecount="2" falsecount="0"/>
+        <line num="37" count="4" type="stmt"/>
+        <line num="38" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="39" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="40" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="41" count="4" type="cond" truecount="2" falsecount="2"/>
+        <line num="42" count="0" type="stmt"/>
+        <line num="44" count="4" type="stmt"/>
+        <line num="48" count="4" type="stmt"/>
+        <line num="49" count="4" type="stmt"/>
+        <line num="50" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="51" count="2" type="stmt"/>
+        <line num="52" count="2" type="stmt"/>
+        <line num="54" count="2" type="stmt"/>
+        <line num="57" count="173" type="cond" truecount="2" falsecount="0"/>
+        <line num="58" count="2" type="stmt"/>
+        <line num="76" count="171" type="stmt"/>
+      </file>
+      <file name="CreateListing.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CreateListing.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="CreateListing.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/CreateListing.tsx">
+        <metrics statements="57" coveredstatements="22" conditionals="93" coveredconditionals="32" methods="24" coveredmethods="11"/>
+        <line num="27" count="1" type="stmt"/>
+        <line num="37" count="1" type="stmt"/>
+        <line num="40" count="110" type="stmt"/>
+        <line num="51" count="110" type="stmt"/>
+        <line num="52" count="110" type="stmt"/>
+        <line num="53" count="110" type="stmt"/>
+        <line num="54" count="110" type="stmt"/>
+        <line num="55" count="110" type="stmt"/>
+        <line num="57" count="660" type="cond" truecount="2" falsecount="0"/>
+        <line num="58" count="110" type="stmt"/>
+        <line num="61" count="73" type="stmt"/>
+        <line num="62" count="73" type="stmt"/>
+        <line num="63" count="73" type="cond" truecount="1" falsecount="1"/>
+        <line num="64" count="0" type="stmt"/>
+        <line num="69" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="70" count="0" type="stmt"/>
+        <line num="71" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="72" count="0" type="stmt"/>
+        <line num="73" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="75" count="0" type="stmt"/>
+        <line num="80" count="0" type="stmt"/>
+        <line num="81" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="82" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="83" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="84" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="85" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="86" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="87" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="88" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="89" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="90" count="0" type="stmt"/>
+        <line num="94" count="0" type="stmt"/>
+        <line num="95" count="0" type="stmt"/>
+        <line num="96" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="97" count="0" type="stmt"/>
+        <line num="99" count="0" type="cond" truecount="0" falsecount="7"/>
+        <line num="100" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="101" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="102" count="0" type="stmt"/>
+        <line num="103" count="0" type="stmt"/>
+        <line num="105" count="0" type="stmt"/>
+        <line num="108" count="110" type="cond" truecount="1" falsecount="1"/>
+        <line num="109" count="0" type="stmt"/>
+        <line num="127" count="110" type="cond" truecount="1" falsecount="1"/>
+        <line num="128" count="0" type="stmt"/>
+        <line num="129" count="0" type="stmt"/>
+        <line num="153" count="0" type="stmt"/>
+        <line num="160" count="110" type="stmt"/>
+        <line num="170" count="440" type="stmt"/>
+        <line num="173" count="0" type="stmt"/>
+        <line num="202" count="581" type="stmt"/>
+        <line num="206" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="291" count="0" type="stmt"/>
+        <line num="327" count="18" type="stmt"/>
+        <line num="339" count="1" type="stmt"/>
+        <line num="345" count="16" type="stmt"/>
+        <line num="350" count="0" type="stmt"/>
+      </file>
+      <file name="Dashboard.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Dashboard.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Dashboard.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Dashboard.tsx">
+        <metrics statements="30" coveredstatements="25" conditionals="36" coveredconditionals="22" methods="19" coveredmethods="15"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="20" count="1" type="stmt"/>
+        <line num="24" count="143" type="stmt"/>
+        <line num="25" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="26" count="33" type="stmt"/>
+        <line num="29" count="11" type="stmt"/>
+        <line num="30" count="22" type="stmt"/>
+        <line num="31" count="22" type="cond" truecount="2" falsecount="0"/>
+        <line num="35" count="33" type="stmt"/>
+        <line num="36" count="11" type="cond" truecount="0" falsecount="2"/>
+        <line num="39" count="11" type="stmt"/>
+        <line num="42" count="99" type="cond" truecount="2" falsecount="0"/>
+        <line num="45" count="11" type="stmt"/>
+        <line num="46" count="154" type="stmt"/>
+        <line num="47" count="44" type="stmt"/>
+        <line num="48" count="66" type="stmt"/>
+        <line num="50" count="11" type="stmt"/>
+        <line num="81" count="0" type="stmt"/>
+        <line num="138" count="33" type="stmt"/>
+        <line num="156" count="44" type="stmt"/>
+        <line num="179" count="22" type="stmt"/>
+        <line num="217" count="0" type="stmt"/>
+        <line num="234" count="0" type="stmt"/>
+        <line num="235" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="236" count="0" type="stmt"/>
+        <line num="271" count="66" type="cond" truecount="1" falsecount="1"/>
+        <line num="272" count="33" type="stmt"/>
+        <line num="273" count="33" type="stmt"/>
+        <line num="274" count="33" type="stmt"/>
+        <line num="275" count="33" type="stmt"/>
+      </file>
+      <file name="EditListing.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/EditListing.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="EditListing.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/EditListing.tsx">
+        <metrics statements="57" coveredstatements="51" conditionals="46" coveredconditionals="32" methods="21" coveredmethods="17"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="22" count="1" type="stmt"/>
+        <line num="29" count="39" type="stmt"/>
+        <line num="30" count="39" type="stmt"/>
+        <line num="32" count="39" type="stmt"/>
+        <line num="33" count="39" type="stmt"/>
+        <line num="34" count="39" type="stmt"/>
+        <line num="35" count="39" type="stmt"/>
+        <line num="37" count="39" type="cond" truecount="1" falsecount="1"/>
+        <line num="38" count="0" type="stmt"/>
+        <line num="51" count="39" type="stmt"/>
+        <line num="62" count="39" type="stmt"/>
+        <line num="64" count="234" type="cond" truecount="2" falsecount="0"/>
+        <line num="65" count="39" type="stmt"/>
+        <line num="68" count="117" type="stmt"/>
+        <line num="69" count="39" type="stmt"/>
+        <line num="70" count="39" type="stmt"/>
+        <line num="73" count="39" type="stmt"/>
+        <line num="79" count="14" type="stmt"/>
+        <line num="80" count="14" type="stmt"/>
+        <line num="81" count="14" type="cond" truecount="1" falsecount="1"/>
+        <line num="82" count="14" type="stmt"/>
+        <line num="86" count="2" type="stmt"/>
+        <line num="87" count="2" type="stmt"/>
+        <line num="88" count="2" type="stmt"/>
+        <line num="89" count="2" type="stmt"/>
+        <line num="93" count="3" type="stmt"/>
+        <line num="94" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="95" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="96" count="3" type="cond" truecount="3" falsecount="1"/>
+        <line num="97" count="3" type="cond" truecount="2" falsecount="2"/>
+        <line num="98" count="0" type="stmt"/>
+        <line num="100" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="101" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="102" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="103" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="104" count="3" type="stmt"/>
+        <line num="108" count="3" type="stmt"/>
+        <line num="109" count="3" type="stmt"/>
+        <line num="110" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="111" count="1" type="stmt"/>
+        <line num="112" count="1" type="stmt"/>
+        <line num="114" count="2" type="stmt"/>
+        <line num="115" count="2" type="stmt"/>
+        <line num="119" count="0" type="stmt"/>
+        <line num="120" count="0" type="stmt"/>
+        <line num="123" count="39" type="cond" truecount="1" falsecount="1"/>
+        <line num="124" count="0" type="stmt"/>
+        <line num="137" count="39" type="stmt"/>
+        <line num="162" count="117" type="stmt"/>
+        <line num="197" count="39" type="stmt"/>
+        <line num="198" count="39" type="stmt"/>
+        <line num="229" count="273" type="stmt"/>
+        <line num="263" count="234" type="cond" truecount="2" falsecount="0"/>
+        <line num="282" count="39" type="stmt"/>
+        <line num="295" count="2" type="stmt"/>
+        <line num="309" count="0" type="stmt"/>
+      </file>
+      <file name="ForgotPassword.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ForgotPassword.tsx">
+        <metrics statements="17" coveredstatements="15" conditionals="8" coveredconditionals="7" methods="3" coveredmethods="3"/>
+        <line num="8" count="77" type="stmt"/>
+        <line num="9" count="77" type="stmt"/>
+        <line num="10" count="77" type="stmt"/>
+        <line num="13" count="4" type="stmt"/>
+        <line num="14" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="15" count="2" type="stmt"/>
+        <line num="16" count="2" type="stmt"/>
+        <line num="18" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="19" count="0" type="stmt"/>
+        <line num="20" count="0" type="stmt"/>
+        <line num="22" count="2" type="stmt"/>
+        <line num="23" count="2" type="stmt"/>
+        <line num="26" count="77" type="cond" truecount="2" falsecount="0"/>
+        <line num="27" count="2" type="stmt"/>
+        <line num="52" count="75" type="stmt"/>
+        <line num="76" count="61" type="stmt"/>
+        <line num="77" count="61" type="cond" truecount="2" falsecount="0"/>
+      </file>
+      <file name="ListingDetails.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ListingDetails.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="ListingDetails.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ListingDetails.tsx">
+        <metrics statements="34" coveredstatements="20" conditionals="59" coveredconditionals="34" methods="9" coveredmethods="5"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="14" count="13" type="stmt"/>
+        <line num="15" count="13" type="stmt"/>
+        <line num="16" count="13" type="stmt"/>
+        <line num="17" count="13" type="stmt"/>
+        <line num="18" count="13" type="stmt"/>
+        <line num="20" count="13" type="cond" truecount="1" falsecount="1"/>
+        <line num="21" count="0" type="stmt"/>
+        <line num="34" count="13" type="stmt"/>
+        <line num="35" count="13" type="stmt"/>
+        <line num="36" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="37" count="13" type="stmt"/>
+        <line num="39" count="13" type="stmt"/>
+        <line num="42" count="13" type="stmt"/>
+        <line num="45" count="39" type="stmt"/>
+        <line num="48" count="13" type="stmt"/>
+        <line num="49" count="169" type="cond" truecount="4" falsecount="0"/>
+        <line num="53" count="0" type="stmt"/>
+        <line num="54" count="0" type="stmt"/>
+        <line num="55" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="56" count="0" type="stmt"/>
+        <line num="57" count="0" type="stmt"/>
+        <line num="59" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="60" count="0" type="stmt"/>
+        <line num="61" count="0" type="stmt"/>
+        <line num="63" count="0" type="stmt"/>
+        <line num="64" count="0" type="stmt"/>
+        <line num="67" count="13" type="stmt"/>
+        <line num="149" count="0" type="stmt"/>
+        <line num="150" count="0" type="stmt"/>
+        <line num="184" count="10" type="stmt"/>
+        <line num="185" count="10" type="stmt"/>
+        <line num="215" count="0" type="stmt"/>
+        <line num="249" count="26" type="stmt"/>
+      </file>
+      <file name="ListingHistory.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ListingHistory.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="ListingHistory.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ListingHistory.tsx">
+        <metrics statements="42" coveredstatements="32" conditionals="56" coveredconditionals="31" methods="24" coveredmethods="15"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="19" count="31" type="stmt"/>
+        <line num="20" count="31" type="stmt"/>
+        <line num="21" count="31" type="cond" truecount="1" falsecount="1"/>
+        <line num="22" count="31" type="cond" truecount="1" falsecount="1"/>
+        <line num="23" count="31" type="cond" truecount="1" falsecount="1"/>
+        <line num="24" count="31" type="cond" truecount="3" falsecount="1"/>
+        <line num="25" count="11" type="stmt"/>
+        <line num="42" count="11" type="stmt"/>
+        <line num="43" count="11" type="stmt"/>
+        <line num="44" count="11" type="stmt"/>
+        <line num="51" count="143" type="stmt"/>
+        <line num="52" count="33" type="stmt"/>
+        <line num="54" count="11" type="stmt"/>
+        <line num="56" count="33" type="stmt"/>
+        <line num="58" count="77" type="stmt"/>
+        <line num="59" count="33" type="stmt"/>
+        <line num="73" count="0" type="stmt"/>
+        <line num="74" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="75" count="0" type="stmt"/>
+        <line num="88" count="22" type="stmt"/>
+        <line num="91" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="93" count="3" type="stmt"/>
+        <line num="96" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="98" count="3" type="stmt"/>
+        <line num="101" count="11" type="stmt"/>
+        <line num="102" count="33" type="stmt"/>
+        <line num="103" count="33" type="stmt"/>
+        <line num="105" count="11" type="stmt"/>
+        <line num="115" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="116" count="0" type="stmt"/>
+        <line num="123" count="11" type="stmt"/>
+        <line num="162" count="0" type="stmt"/>
+        <line num="168" count="1" type="stmt"/>
+        <line num="174" count="0" type="stmt"/>
+        <line num="183" count="66" type="stmt"/>
+        <line num="186" count="1" type="stmt"/>
+        <line num="208" count="31" type="cond" truecount="2" falsecount="0"/>
+        <line num="209" count="31" type="stmt"/>
+        <line num="239" count="0" type="stmt"/>
+        <line num="253" count="0" type="stmt"/>
+        <line num="257" count="0" type="stmt"/>
+      </file>
+      <file name="Login.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Login.tsx">
+        <metrics statements="36" coveredstatements="36" conditionals="26" coveredconditionals="26" methods="7" coveredmethods="7"/>
+        <line num="10" count="166" type="stmt"/>
+        <line num="11" count="166" type="stmt"/>
+        <line num="12" count="166" type="stmt"/>
+        <line num="13" count="166" type="stmt"/>
+        <line num="14" count="166" type="stmt"/>
+        <line num="15" count="166" type="stmt"/>
+        <line num="16" count="166" type="stmt"/>
+        <line num="19" count="135" type="stmt"/>
+        <line num="20" count="135" type="stmt"/>
+        <line num="21" count="135" type="cond" truecount="2" falsecount="0"/>
+        <line num="25" count="7" type="stmt"/>
+        <line num="26" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="27" count="2" type="stmt"/>
+        <line num="29" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="2" type="stmt"/>
+        <line num="32" count="7" type="stmt"/>
+        <line num="36" count="7" type="stmt"/>
+        <line num="37" count="7" type="stmt"/>
+        <line num="38" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="39" count="2" type="stmt"/>
+        <line num="40" count="2" type="stmt"/>
+        <line num="43" count="5" type="stmt"/>
+        <line num="44" count="5" type="stmt"/>
+        <line num="46" count="5" type="stmt"/>
+        <line num="47" count="5" type="stmt"/>
+        <line num="48" count="2" type="stmt"/>
+        <line num="50" count="3" type="cond" truecount="4" falsecount="0"/>
+        <line num="51" count="1" type="stmt"/>
+        <line num="52" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="53" count="1" type="stmt"/>
+        <line num="55" count="1" type="stmt"/>
+        <line num="58" count="5" type="stmt"/>
+        <line num="62" count="166" type="cond" truecount="2" falsecount="0"/>
+        <line num="63" count="2" type="stmt"/>
+        <line num="82" count="164" type="stmt"/>
+        <line num="131" count="1" type="stmt"/>
+      </file>
+      <file name="MessageThread.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/MessageThread.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="MessageThread.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/MessageThread.tsx">
+        <metrics statements="46" coveredstatements="44" conditionals="64" coveredconditionals="48" methods="12" coveredmethods="11"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="14" count="185" type="stmt"/>
+        <line num="15" count="185" type="stmt"/>
+        <line num="16" count="185" type="stmt"/>
+        <line num="17" count="185" type="stmt"/>
+        <line num="18" count="185" type="cond" truecount="2" falsecount="0"/>
+        <line num="19" count="184" type="cond" truecount="1" falsecount="1"/>
+        <line num="20" count="184" type="stmt"/>
+        <line num="24" count="23" type="stmt"/>
+        <line num="25" count="23" type="stmt"/>
+        <line num="26" count="23" type="stmt"/>
+        <line num="27" count="23" type="cond" truecount="1" falsecount="1"/>
+        <line num="28" count="23" type="stmt"/>
+        <line num="29" count="23" type="stmt"/>
+        <line num="31" count="23" type="stmt"/>
+        <line num="32" count="11" type="stmt"/>
+        <line num="35" count="23" type="cond" truecount="1" falsecount="1"/>
+        <line num="36" count="0" type="stmt"/>
+        <line num="48" count="23" type="stmt"/>
+        <line num="49" count="46" type="cond" truecount="1" falsecount="1"/>
+        <line num="50" count="23" type="stmt"/>
+        <line num="51" count="23" type="stmt"/>
+        <line num="52" count="23" type="cond" truecount="2" falsecount="2"/>
+        <line num="53" count="23" type="cond" truecount="2" falsecount="0"/>
+        <line num="56" count="1" type="stmt"/>
+        <line num="57" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="58" count="1" type="stmt"/>
+        <line num="65" count="1" type="stmt"/>
+        <line num="66" count="1" type="stmt"/>
+        <line num="70" count="23" type="stmt"/>
+        <line num="71" count="23" type="stmt"/>
+        <line num="72" count="185" type="stmt"/>
+        <line num="73" count="185" type="stmt"/>
+        <line num="74" count="185" type="cond" truecount="4" falsecount="0"/>
+        <line num="75" count="138" type="stmt"/>
+        <line num="77" count="47" type="stmt"/>
+        <line num="81" count="23" type="stmt"/>
+        <line num="82" count="23" type="stmt"/>
+        <line num="84" count="23" type="stmt"/>
+        <line num="112" count="0" type="stmt"/>
+        <line num="148" count="47" type="stmt"/>
+        <line num="153" count="185" type="stmt"/>
+        <line num="154" count="185" type="stmt"/>
+        <line num="155" count="185" type="cond" truecount="3" falsecount="0"/>
+        <line num="156" count="185" type="stmt"/>
+        <line num="202" count="12" type="stmt"/>
+      </file>
+      <file name="Messages.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Messages.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Messages.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Messages.tsx">
+        <metrics statements="38" coveredstatements="32" conditionals="38" coveredconditionals="24" methods="11" coveredmethods="8"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="15" count="8" type="stmt"/>
+        <line num="16" count="8" type="stmt"/>
+        <line num="18" count="8" type="cond" truecount="1" falsecount="1"/>
+        <line num="20" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="21" count="0" type="stmt"/>
+        <line num="22" count="0" type="stmt"/>
+        <line num="23" count="0" type="stmt"/>
+        <line num="24" count="0" type="stmt"/>
+        <line num="32" count="8" type="stmt"/>
+        <line num="33" count="8" type="stmt"/>
+        <line num="34" count="24" type="stmt"/>
+        <line num="35" count="24" type="stmt"/>
+        <line num="36" count="24" type="stmt"/>
+        <line num="38" count="8" type="stmt"/>
+        <line num="39" count="24" type="stmt"/>
+        <line num="40" count="24" type="stmt"/>
+        <line num="41" count="24" type="stmt"/>
+        <line num="44" count="8" type="stmt"/>
+        <line num="45" count="24" type="stmt"/>
+        <line num="46" count="24" type="stmt"/>
+        <line num="49" count="8" type="stmt"/>
+        <line num="81" count="0" type="stmt"/>
+        <line num="91" count="24" type="stmt"/>
+        <line num="103" count="48" type="cond" truecount="1" falsecount="1"/>
+        <line num="104" count="24" type="stmt"/>
+        <line num="105" count="24" type="stmt"/>
+        <line num="106" count="24" type="stmt"/>
+        <line num="107" count="24" type="stmt"/>
+        <line num="110" count="24" type="stmt"/>
+        <line num="111" count="24" type="stmt"/>
+        <line num="112" count="24" type="cond" truecount="1" falsecount="1"/>
+        <line num="113" count="24" type="stmt"/>
+        <line num="114" count="24" type="cond" truecount="1" falsecount="1"/>
+        <line num="115" count="24" type="stmt"/>
+        <line num="116" count="24" type="cond" truecount="1" falsecount="1"/>
+        <line num="117" count="24" type="stmt"/>
+        <line num="120" count="24" type="stmt"/>
+      </file>
+      <file name="Notifications.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Notifications.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Notifications.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Notifications.tsx">
+        <metrics statements="36" coveredstatements="32" conditionals="30" coveredconditionals="21" methods="21" coveredmethods="14"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="14" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="29" count="88" type="stmt"/>
+        <line num="30" count="88" type="stmt"/>
+        <line num="31" count="88" type="stmt"/>
+        <line num="32" count="88" type="stmt"/>
+        <line num="34" count="88" type="cond" truecount="1" falsecount="1"/>
+        <line num="35" count="88" type="cond" truecount="1" falsecount="1"/>
+        <line num="36" count="88" type="stmt"/>
+        <line num="40" count="12" type="stmt"/>
+        <line num="41" count="12" type="stmt"/>
+        <line num="42" count="108" type="stmt"/>
+        <line num="45" count="12" type="cond" truecount="2" falsecount="0"/>
+        <line num="47" count="8" type="stmt"/>
+        <line num="50" count="12" type="stmt"/>
+        <line num="51" count="88" type="stmt"/>
+        <line num="52" count="88" type="cond" truecount="2" falsecount="0"/>
+        <line num="53" count="88" type="stmt"/>
+        <line num="54" count="88" type="stmt"/>
+        <line num="57" count="12" type="stmt"/>
+        <line num="60" count="0" type="stmt"/>
+        <line num="64" count="0" type="stmt"/>
+        <line num="65" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="70" count="8" type="stmt"/>
+        <line num="73" count="95" type="stmt"/>
+        <line num="75" count="12" type="stmt"/>
+        <line num="83" count="12" type="stmt"/>
+        <line num="100" count="60" type="stmt"/>
+        <line num="103" count="1" type="stmt"/>
+        <line num="120" count="36" type="stmt"/>
+        <line num="121" count="36" type="cond" truecount="4" falsecount="0"/>
+        <line num="122" count="12" type="stmt"/>
+        <line num="127" count="88" type="stmt"/>
+        <line num="134" count="0" type="stmt"/>
+        <line num="147" count="1" type="stmt"/>
+      </file>
+      <file name="Profile.css" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Profile.css">
+        <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      </file>
+      <file name="Profile.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/Profile.tsx">
+        <metrics statements="36" coveredstatements="33" conditionals="30" coveredconditionals="23" methods="18" coveredmethods="16"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="20" count="15" type="stmt"/>
+        <line num="23" count="195" type="stmt"/>
+        <line num="24" count="45" type="stmt"/>
+        <line num="25" count="210" type="stmt"/>
+        <line num="27" count="15" type="stmt"/>
+        <line num="34" count="0" type="stmt"/>
+        <line num="40" count="4" type="stmt"/>
+        <line num="63" count="154" type="stmt"/>
+        <line num="64" count="66" type="stmt"/>
+        <line num="66" count="11" type="stmt"/>
+        <line num="114" count="44" type="stmt"/>
+        <line num="127" count="33" type="stmt"/>
+        <line num="160" count="7" type="stmt"/>
+        <line num="166" count="7" type="stmt"/>
+        <line num="167" count="7" type="stmt"/>
+        <line num="170" count="1" type="stmt"/>
+        <line num="171" count="1" type="stmt"/>
+        <line num="172" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="173" count="1" type="stmt"/>
+        <line num="177" count="2" type="stmt"/>
+        <line num="178" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="179" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="180" count="0" type="stmt"/>
+        <line num="181" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="182" count="0" type="stmt"/>
+        <line num="184" count="2" type="stmt"/>
+        <line num="188" count="2" type="stmt"/>
+        <line num="189" count="2" type="stmt"/>
+        <line num="190" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="191" count="1" type="stmt"/>
+        <line num="192" count="1" type="stmt"/>
+        <line num="194" count="1" type="stmt"/>
+        <line num="195" count="1" type="stmt"/>
+        <line num="198" count="7" type="stmt"/>
+      </file>
+      <file name="ResetPassword.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/ResetPassword.tsx">
+        <metrics statements="40" coveredstatements="39" conditionals="44" coveredconditionals="41" methods="9" coveredmethods="8"/>
+        <line num="8" count="116" type="stmt"/>
+        <line num="9" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="10" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="11" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="12" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="13" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="15" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="16" count="58" type="cond" truecount="2" falsecount="0"/>
+        <line num="17" count="47" type="cond" truecount="2" falsecount="0"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="22" count="116" type="stmt"/>
+        <line num="23" count="116" type="stmt"/>
+        <line num="24" count="116" type="stmt"/>
+        <line num="25" count="116" type="stmt"/>
+        <line num="26" count="116" type="stmt"/>
+        <line num="28" count="116" type="stmt"/>
+        <line num="31" count="95" type="stmt"/>
+        <line num="32" count="95" type="stmt"/>
+        <line num="33" count="95" type="cond" truecount="2" falsecount="0"/>
+        <line num="37" count="6" type="stmt"/>
+        <line num="38" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="39" count="2" type="stmt"/>
+        <line num="40" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="43" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="44" count="4" type="stmt"/>
+        <line num="45" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="46" count="1" type="stmt"/>
+        <line num="48" count="6" type="stmt"/>
+        <line num="52" count="6" type="stmt"/>
+        <line num="53" count="6" type="stmt"/>
+        <line num="54" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="55" count="5" type="stmt"/>
+        <line num="56" count="5" type="stmt"/>
+        <line num="58" count="1" type="stmt"/>
+        <line num="61" count="116" type="cond" truecount="2" falsecount="0"/>
+        <line num="62" count="1" type="stmt"/>
+        <line num="87" count="115" type="stmt"/>
+        <line num="117" count="1" type="stmt"/>
+        <line num="152" count="0" type="stmt"/>
+      </file>
+      <file name="SignUp.tsx" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/src/pages/SignUp.tsx">
+        <metrics statements="62" coveredstatements="55" conditionals="60" coveredconditionals="50" methods="9" coveredmethods="8"/>
+        <line num="18" count="285" type="stmt"/>
+        <line num="19" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="20" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="21" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="22" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="23" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="25" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="26" count="78" type="cond" truecount="2" falsecount="0"/>
+        <line num="27" count="65" type="cond" truecount="2" falsecount="0"/>
+        <line num="28" count="62" type="stmt"/>
+        <line num="32" count="285" type="stmt"/>
+        <line num="33" count="285" type="stmt"/>
+        <line num="40" count="285" type="stmt"/>
+        <line num="41" count="285" type="stmt"/>
+        <line num="42" count="285" type="stmt"/>
+        <line num="43" count="285" type="stmt"/>
+        <line num="44" count="285" type="stmt"/>
+        <line num="45" count="285" type="stmt"/>
+        <line num="47" count="285" type="stmt"/>
+        <line num="50" count="255" type="stmt"/>
+        <line num="51" count="255" type="stmt"/>
+        <line num="52" count="255" type="cond" truecount="2" falsecount="0"/>
+        <line num="56" count="6" type="stmt"/>
+        <line num="57" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="58" count="2" type="stmt"/>
+        <line num="59" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="60" count="1" type="stmt"/>
+        <line num="62" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="63" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="64" count="2" type="stmt"/>
+        <line num="65" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="66" count="0" type="stmt"/>
+        <line num="68" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="69" count="2" type="stmt"/>
+        <line num="70" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="71" count="1" type="stmt"/>
+        <line num="73" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="74" count="2" type="stmt"/>
+        <line num="75" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="76" count="1" type="stmt"/>
+        <line num="78" count="6" type="stmt"/>
+        <line num="82" count="6" type="stmt"/>
+        <line num="83" count="6" type="stmt"/>
+        <line num="84" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="85" count="5" type="stmt"/>
+        <line num="86" count="5" type="stmt"/>
+        <line num="89" count="1" type="stmt"/>
+        <line num="90" count="1" type="stmt"/>
+        <line num="92" count="1" type="stmt"/>
+        <line num="93" count="1" type="stmt"/>
+        <line num="94" count="1" type="stmt"/>
+        <line num="96" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="97" count="0" type="stmt"/>
+        <line num="98" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="99" count="0" type="stmt"/>
+        <line num="101" count="0" type="stmt"/>
+        <line num="104" count="1" type="stmt"/>
+        <line num="108" count="285" type="cond" truecount="2" falsecount="0"/>
+        <line num="109" count="1" type="stmt"/>
+        <line num="128" count="284" type="stmt"/>
+        <line num="193" count="1" type="stmt"/>
+        <line num="228" count="0" type="stmt"/>
+      </file>
+    </package>
+    <package name="tests.mocks">
+      <metrics statements="10" coveredstatements="10" conditionals="2" coveredconditionals="2" methods="3" coveredmethods="3"/>
+      <file name="handlers.ts" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/tests/mocks/handlers.ts">
+        <metrics statements="9" coveredstatements="9" conditionals="2" coveredconditionals="2" methods="3" coveredmethods="3"/>
+        <line num="3" count="32" type="stmt"/>
+        <line num="5" count="32" type="stmt"/>
+        <line num="7" count="3" type="stmt"/>
+        <line num="8" count="3" type="stmt"/>
+        <line num="20" count="6" type="stmt"/>
+        <line num="27" count="8" type="stmt"/>
+        <line num="28" count="8" type="cond" truecount="2" falsecount="0"/>
+        <line num="29" count="1" type="stmt"/>
+        <line num="31" count="7" type="stmt"/>
+      </file>
+      <file name="server.ts" path="/Users/jiyeon/Downloads/local-produce-exchange-main/frontend/tests/mocks/server.ts">
+        <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="4" count="32" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>
