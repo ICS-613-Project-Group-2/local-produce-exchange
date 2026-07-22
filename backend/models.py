@@ -11,7 +11,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
@@ -25,7 +25,6 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(Text, nullable=False)
     profile_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
-    location = Column(String(150), nullable=True)
 
 class Community(Base):
     __tablename__ = "communities"
@@ -71,6 +70,8 @@ class Listing(Base):
     date_posted = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     pickup_location = Column(Text, nullable=True)
     category = Column(Text, nullable=True)
+
+    photos = relationship("Photo", secondary="listing_photos", viewonly=True)
 
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="listings_quantity_check"),

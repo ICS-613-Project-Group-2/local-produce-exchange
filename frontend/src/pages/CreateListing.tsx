@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
-import { mockCommunities } from "../data/mockData";
+import {
+  createListing,
+  uploadPhoto,
+  listCommunities,
+  ApiError,
+  type CommunityResponse,
+} from "../lib/api";
 import "./CreateListing.css";
 
 interface FormData {
@@ -48,8 +54,24 @@ export default function CreateListing() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [userCommunities, setUserCommunities] = useState<CommunityResponse[]>([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(true);
+  const [communitiesError, setCommunitiesError] = useState<string | null>(null);
 
-  const userCommunities = mockCommunities.filter((c) => !c.is_private || c.community_id <= 3);
+  useEffect(() => {
+    listCommunities()
+      .then((result) => setUserCommunities(result.my_communities))
+      .catch((err) => {
+        setCommunitiesError(
+          err instanceof ApiError && err.status === 401
+            ? "Your session has expired. Please log in again to select a community."
+            : "Couldn't load your communities. Please refresh the page and try again."
+        );
+      })
+      .finally(() => setCommunitiesLoading(false));
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
@@ -80,18 +102,49 @@ export default function CreateListing() {
     if (!formData.expiration_date) newErrors.expiration_date = "Expiration date is required.";
     if (!formData.pickup_location.trim()) newErrors.pickup_location = "Pickup location is required.";
     if (!formData.community_id) newErrors.community_id = "Please select a community.";
-    if (!formData.photo) newErrors.photo = "Please upload a photo.";
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      let photoId: number | null = null;
+      if (formData.photo) {
+        const photo = await uploadPhoto(formData.photo);
+        photoId = photo.photo_id;
+      }
+
+      await createListing({
+        name: formData.name,
+        description: formData.description || null,
+        quantity: Number(formData.quantity),
+        expiration_date: formData.expiration_date || null,
+        pickup_location: formData.pickup_location || null,
+        category: formData.category || null,
+        community_id: formData.community_id ? Number(formData.community_id) : null,
+        photo_id: photoId,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setSubmitError("You need to be logged in to post a listing.");
+      } else if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Something went wrong while publishing your listing. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -219,7 +272,7 @@ export default function CreateListing() {
             {/* Photo */}
             <section className="create-listing__section">
               <h2>Photo</h2>
-              <FormField label="Upload Image" htmlFor="photo" required error={errors.photo}>
+              <FormField label="Upload Image" htmlFor="photo" error={errors.photo}>
                 <input
                   id="photo"
                   name="photo"
@@ -246,8 +299,11 @@ export default function CreateListing() {
                   className={`form-field__input ${errors.community_id ? "form-field__input--error" : ""}`}
                   value={formData.community_id}
                   onChange={handleChange}
+                  disabled={communitiesLoading}
                 >
-                  <option value="">Select a community</option>
+                  <option value="">
+                    {communitiesLoading ? "Loading your communities..." : "Select a community"}
+                  </option>
                   {userCommunities.map((c) => (
                     <option key={c.community_id} value={c.community_id}>
                       {c.name} {c.is_private ? "(Private)" : "(Public)"}
@@ -255,12 +311,28 @@ export default function CreateListing() {
                   ))}
                 </select>
               </FormField>
+              {communitiesError && (
+                <p className="create-listing__submit-error" role="alert">
+                  {communitiesError}
+                </p>
+              )}
+              {!communitiesLoading && !communitiesError && userCommunities.length === 0 && (
+                <p className="create-listing__community-empty">
+                  You aren't a member of any communities yet.{" "}
+                  <Link to="/communities">Join or create one</Link> before posting a listing.
+                </p>
+              )}
             </section>
 
             {/* Actions */}
+            {submitError && (
+              <p className="create-listing__submit-error" role="alert">
+                {submitError}
+              </p>
+            )}
             <div className="create-listing__actions">
-              <Button variant="primary" type="submit" size="lg">
-                Publish Listing
+              <Button variant="primary" type="submit" size="lg" disabled={submitting}>
+                {submitting ? "Publishing..." : "Publish Listing"}
               </Button>
               <Link to="/browse">
                 <Button variant="outline" size="lg">Cancel</Button>

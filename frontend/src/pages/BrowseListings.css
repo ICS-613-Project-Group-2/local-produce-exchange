@@ -3,6 +3,13 @@
   max-width: 600px;
 }
 
+.browse__status-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
 .browse__communities {
   display: flex;
   flex-direction: column;

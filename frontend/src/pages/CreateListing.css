@@ -42,6 +42,21 @@
   object-fit: cover;
 }
 
+.create-listing__submit-error {
+  color: var(--color-error);
+  font-size: var(--font-size-body);
+}
+
+.create-listing__community-empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}
+
+.create-listing__community-empty a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
 .create-listing__actions {
   display: flex;
   gap: var(--space-4);

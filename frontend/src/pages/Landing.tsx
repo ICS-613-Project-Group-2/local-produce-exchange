@@ -1,8 +1,15 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardImage, CardBody, CardFooter } from "../components/ui/Card";
-import StatusBadge from "../components/ui/StatusBadge";
-import { mockListings, mockCommunities, getCommunityById } from "../data/mockData";
+import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
+import {
+  listListings,
+  listCommunities,
+  type ListingResponse,
+  type CommunityResponse,
+} from "../lib/api";
+import { NO_PHOTO_URL } from "../lib/placeholder";
 import "./Landing.css";
 
 interface LandingProps {
@@ -16,9 +23,50 @@ export default function Landing({ isLoggedIn = false }: LandingProps) {
   return <LoggedOutLanding />;
 }
 
+function ListingCard({
+  listing,
+  communityName,
+  linked = false,
+}: {
+  listing: ListingResponse;
+  communityName?: string;
+  linked?: boolean;
+}) {
+  return (
+    <Card>
+      <CardImage src={listing.photo_url || NO_PHOTO_URL} alt={listing.name} />
+      <CardBody>
+        <div className="landing__card-header">
+          <h3>{listing.name}</h3>
+          <StatusBadge status={(listing.status as BadgeStatus) || "available"} />
+        </div>
+        <p className="landing__card-meta">
+          {listing.quantity} {listing.unit}
+          {listing.expiration_date && ` · Expires ${new Date(listing.expiration_date).toLocaleDateString()}`}
+        </p>
+        {listing.pickup_location && <p className="landing__card-location">📍 {listing.pickup_location}</p>}
+        {communityName && <p className="landing__card-community">🏘️ {communityName}</p>}
+      </CardBody>
+      {linked && (
+        <CardFooter>
+          <Link to={`/listings/${listing.listing_id}`}>
+            <Button variant="primary" size="sm">View Details</Button>
+          </Link>
+        </CardFooter>
+      )}
+    </Card>
+  );
+}
+
 function LoggedOutLanding() {
-  const featuredListings = mockListings.filter((l) => l.status === "available" || l.status === "expiring-soon").slice(0, 3);
-  const featuredCommunities = mockCommunities.filter((c) => !c.is_private).slice(0, 2);
+  const [featuredListings, setFeaturedListings] = useState<ListingResponse[]>([]);
+
+  useEffect(() => {
+    // communities require authentication to fetch, so the logged-out landing only shows listings
+    listListings({ status_filter: "available" })
+      .then((listings) => setFeaturedListings(listings.slice(0, 3)))
+      .catch(() => setFeaturedListings([]));
+  }, []);
 
   return (
     <div className="landing">
@@ -68,50 +116,27 @@ function LoggedOutLanding() {
       </section>
 
       {/* Featured Listings */}
-      <section className="landing__section">
-        <h2 className="landing__section-title">Featured Listings</h2>
-        <div className="landing__grid">
-          {featuredListings.map((listing) => {
-            const community = getCommunityById(listing.community_id);
-            return (
-              <Card key={listing.listing_id}>
-                <CardImage src={listing.photo_url} alt={listing.name} />
-                <CardBody>
-                  <div className="landing__card-header">
-                    <h3>{listing.name}</h3>
-                    <StatusBadge status={listing.status} />
-                  </div>
-                  <p className="landing__card-meta">
-                    {listing.quantity} {listing.unit} · Expires {new Date(listing.expiration_date).toLocaleDateString()}
-                  </p>
-                  <p className="landing__card-location">📍 {listing.pickup_location}</p>
-                  {community && <p className="landing__card-community">🏘️ {community.name}</p>}
-                </CardBody>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+      {featuredListings.length > 0 && (
+        <section className="landing__section">
+          <h2 className="landing__section-title">Featured Listings</h2>
+          <div className="landing__grid">
+            {featuredListings.map((listing) => (
+              <ListingCard key={listing.listing_id} listing={listing} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Communities Preview */}
       <section className="landing__section">
         <h2 className="landing__section-title">Join a Community</h2>
-        <div className="landing__grid landing__grid--2col">
-          {featuredCommunities.map((community) => (
-            <Card key={community.community_id} variant="warm">
-              <CardBody>
-                <div className="landing__card-header">
-                  <h3>{community.name}</h3>
-                  <StatusBadge status={community.is_private ? "private" : "public"} />
-                </div>
-                <p className="landing__card-meta">{community.description}</p>
-                <p className="landing__card-community">👥 {community.member_count} members</p>
-              </CardBody>
-              <CardFooter>
-                <Button variant="primary" size="sm">Join Community</Button>
-              </CardFooter>
-            </Card>
-          ))}
+        <p className="landing__trust-text">
+          Sign up to browse the local food-sharing communities near you — public groups anyone can join, and private groups by invitation.
+        </p>
+        <div className="landing__hero-actions">
+          <Link to="/signup">
+            <Button variant="primary" size="lg">Sign Up to Explore Communities</Button>
+          </Link>
         </div>
       </section>
 
@@ -140,9 +165,25 @@ function LoggedOutLanding() {
 }
 
 function LoggedInLanding() {
-  const expiringListings = mockListings
-    .filter((l) => l.status === "expiring-soon" || l.status === "available")
-    .slice(0, 4);
+  const [expiringListings, setExpiringListings] = useState<ListingResponse[]>([]);
+  const [communitiesById, setCommunitiesById] = useState<Map<number, CommunityResponse>>(new Map());
+
+  useEffect(() => {
+    Promise.all([listListings(), listCommunities()])
+      .then(([listings, communitiesResult]) => {
+        const active = listings
+          .filter((l) => l.status === "available" || l.status === "reserved")
+          .slice(0, 4);
+        setExpiringListings(active);
+
+        const allCommunities = [...communitiesResult.my_communities, ...communitiesResult.public_communities];
+        setCommunitiesById(new Map(allCommunities.map((c) => [c.community_id, c])));
+      })
+      .catch(() => {
+        setExpiringListings([]);
+        setCommunitiesById(new Map());
+      });
+  }, []);
 
   return (
     <div className="landing">
@@ -167,30 +208,18 @@ function LoggedInLanding() {
       <section className="landing__section">
         <h2 className="landing__section-title">Expiring Soon & Available</h2>
         <div className="landing__grid">
-          {expiringListings.map((listing) => {
-            const community = getCommunityById(listing.community_id);
-            return (
-              <Card key={listing.listing_id}>
-                <CardImage src={listing.photo_url} alt={listing.name} />
-                <CardBody>
-                  <div className="landing__card-header">
-                    <h3>{listing.name}</h3>
-                    <StatusBadge status={listing.status} />
-                  </div>
-                  <p className="landing__card-meta">
-                    {listing.quantity} {listing.unit} · Expires {new Date(listing.expiration_date).toLocaleDateString()}
-                  </p>
-                  <p className="landing__card-location">📍 {listing.pickup_location}</p>
-                  {community && <p className="landing__card-community">🏘️ {community.name}</p>}
-                </CardBody>
-                <CardFooter>
-                  <Link to={`/listings/${listing.listing_id}`}>
-                    <Button variant="primary" size="sm">View Details</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            );
-          })}
+          {expiringListings.map((listing) => (
+            <ListingCard
+              key={listing.listing_id}
+              listing={listing}
+              communityName={
+                listing.community_id !== null
+                  ? communitiesById.get(listing.community_id)?.name
+                  : undefined
+              }
+              linked
+            />
+          ))}
         </div>
       </section>
     </div>

@@ -1,3 +1,21 @@
+.edit-listing__status-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
+.edit-listing__submit-error {
+  color: var(--color-error);
+  font-size: var(--font-size-body);
+  margin-bottom: var(--space-5);
+}
+
+.edit-listing__community-name {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}
+
 .edit-listing__status-bar {
   display: flex;
   align-items: center;
