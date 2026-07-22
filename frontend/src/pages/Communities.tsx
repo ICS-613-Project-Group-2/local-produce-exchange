@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import SearchBar from "../components/ui/SearchBar";
@@ -6,29 +6,39 @@ import Button from "../components/ui/Button";
 import Card, { CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockCommunities } from "../data/mockData";
+import { listCommunities, ApiError, type CommunityResponse } from "../lib/api";
 import "./Communities.css";
-
-// Simulate: user is a member of communities 1 and 2, not 3
-const USER_COMMUNITY_IDS = [1, 2];
 
 export default function Communities() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
+  const [publicCommunities, setPublicCommunities] = useState<CommunityResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredCommunities = searchQuery
-    ? mockCommunities.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : mockCommunities;
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    listCommunities(searchQuery || undefined)
+      .then((result) => {
+        setMyCommunities(result.my_communities);
+        setPublicCommunities(result.public_communities);
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Failed to load communities.");
+      })
+      .finally(() => setLoading(false));
+  }, [searchQuery]);
+
+  const myCommunityIds = new Set(myCommunities.map((c) => c.community_id));
+  const allCommunities = [...myCommunities, ...publicCommunities];
 
   function handleSearch(query: string) {
     setSearchQuery(query);
   }
 
   function getMembershipStatus(communityId: number): "joined" | "none" {
-    return USER_COMMUNITY_IDS.includes(communityId) ? "joined" : "none";
+    return myCommunityIds.has(communityId) ? "joined" : "none";
   }
 
   return (
@@ -50,7 +60,11 @@ export default function Communities() {
         />
       </div>
 
-      {filteredCommunities.length === 0 ? (
+      {loading ? (
+        <p className="communities__status-message">Loading communities...</p>
+      ) : error ? (
+        <p className="communities__status-message">{error}</p>
+      ) : allCommunities.length === 0 ? (
         <EmptyState
           icon={<span>🏘️</span>}
           title="No communities found"
@@ -63,7 +77,7 @@ export default function Communities() {
         />
       ) : (
         <div className="communities__grid">
-          {filteredCommunities.map((community) => {
+          {allCommunities.map((community) => {
             const status = getMembershipStatus(community.community_id);
             return (
               <Card key={community.community_id}>

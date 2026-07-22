@@ -66,6 +66,11 @@
   color: var(--color-text-muted);
 }
 
+.create-community__submit-error {
+  color: var(--color-error);
+  font-size: var(--font-size-body);
+}
+
 /* Actions */
 .create-community__actions {
   display: flex;

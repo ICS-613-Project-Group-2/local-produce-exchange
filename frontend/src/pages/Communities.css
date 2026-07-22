@@ -3,6 +3,13 @@
   max-width: 500px;
 }
 
+.communities__status-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
 .communities__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
