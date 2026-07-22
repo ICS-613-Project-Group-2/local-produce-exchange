@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -65,7 +65,7 @@ def _check_moderation_perms(db: Session, community_id: int, user_id: int) -> Mem
 # checks if a user has a pending invitation to a community
 # returns True if the user has a pending invitation, False otherwise    
 def _has_pending_invitation(db: Session, community_id: int, email: str) -> bool:
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     return (
         db.query(Invitation)
         .filter(
@@ -180,7 +180,7 @@ def create_community(
         user_id = current_user.user_id,
         community_id = community.community_id,
         role = "owner",
-        date_joined = datetime.now(datetime.timezone.utc),
+        date_joined = datetime.now(timezone.utc),
     )
     db.add(owner_membership)
 
@@ -269,7 +269,7 @@ def invite_to_community(
         )
 
     # create a new invitation for the invited user and add it to the database
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     invitation = Invitation(
         community_id = community_id,
         sender_user_id = current_user.user_id,

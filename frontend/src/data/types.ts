@@ -19,18 +19,18 @@ export interface Community {
 
 export interface Listing {
   listing_id: number;
-  user_id: number;
-  community_id: number;
+  user_id: number | null;
+  community_id: number | null;
   name: string;
-  description: string;
+  description: string | null;
   quantity: number;
-  unit: string;
-  category: string;
-  status: "available" | "reserved" | "expiring-soon" | "picked-up" | "completed" | "closed";
-  expiration_date: string;
-  date_posted: string;
-  pickup_location: string;
-  photo_url: string;
+  unit: string | null;
+  category: string | null;
+  status: string | null;
+  expiration_date: string | null;
+  date_posted: string | null;
+  pickup_location: string | null;
+  photo_url: string | null;
 }
 
 export interface ClaimRequest {
@@ -66,27 +66,4 @@ export interface Notification {
   timestamp: string;
   is_read: boolean;
   type: "message" | "claim" | "community" | "listing";
-}
-
-export interface CommunityPost {
-  post_id: number;
-  community_id: number;
-  user_id: number;
-  content: string;
-  timestamp: string;
-}
-
-export interface Membership {
-  user_id: number;
-  community_id: number;
-  role: "member" | "admin";
-  date_joined: string;
-}
-
-export interface JoinRequest {
-  request_id: number;
-  community_id: number;
-  user_id: number;
-  status: "pending" | "approved" | "rejected";
-  request_date: string;
 }

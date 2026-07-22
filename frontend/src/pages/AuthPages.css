@@ -1,46 +1,18 @@
 .auth-page {
-  min-height: calc(100vh - 60px);
-}
-
-.auth-page__layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 60px);
-}
-
-/* Form Side */
-.auth-page__form-side {
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: var(--space-6) var(--page-padding);
+  align-items: flex-start;
+  padding: var(--space-7) var(--page-padding);
+  min-height: calc(100vh - 60px);
 }
 
-.auth-page__card {
+.auth-page .card {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
 }
 
-/* Brand */
-.auth-page__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-}
-
-.auth-page__brand-icon {
-  font-size: 28px;
-}
-
-.auth-page__brand-name {
-  font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-}
-
-/* Header */
 .auth-page__header {
+  text-align: center;
   margin-bottom: var(--space-6);
 }
 
@@ -54,7 +26,6 @@
   font-size: var(--font-size-body);
 }
 
-/* Form */
 .auth-page__form {
   display: flex;
   flex-direction: column;
@@ -66,101 +37,6 @@
   margin-top: var(--space-3);
 }
 
-/* Password wrapper */
-.auth-page__password-wrapper {
-  position: relative;
-}
-
-.auth-page__password-wrapper .form-field__input {
-  padding-right: 48px;
-}
-
-.auth-page__toggle-password {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--color-text-muted);
-}
-
-.auth-page__toggle-password:hover {
-  background-color: var(--color-background-alt);
-}
-
-/* Password Strength */
-.auth-page__strength {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-
-.auth-page__strength-bar {
-  flex: 1;
-  height: 4px;
-  background-color: var(--color-border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.auth-page__strength-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-
-.auth-page__strength-fill--1 {
-  background-color: var(--color-error);
-}
-
-.auth-page__strength-fill--2 {
-  background-color: var(--color-warning);
-}
-
-.auth-page__strength-fill--3 {
-  background-color: var(--color-secondary);
-}
-
-.auth-page__strength-fill--4 {
-  background-color: var(--color-success);
-}
-
-.auth-page__strength-label {
-  font-size: var(--font-size-badge);
-  font-weight: var(--font-weight-semibold);
-}
-
-.auth-page__strength-label--1 {
-  color: var(--color-error);
-}
-
-.auth-page__strength-label--2 {
-  color: var(--color-warning);
-}
-
-.auth-page__strength-label--3 {
-  color: var(--color-secondary-hover);
-}
-
-.auth-page__strength-label--4 {
-  color: var(--color-success);
-}
-
-/* Links */
-.auth-page__links {
-  display: flex;
-  justify-content: flex-end;
-  font-size: var(--font-size-label);
-}
-
-.auth-page__links a {
-  color: var(--color-primary);
-}
-
-/* Footer */
 .auth-page__footer {
   text-align: center;
   margin-top: var(--space-5);
@@ -173,7 +49,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* Success */
 .auth-page__success {
   text-align: center;
   padding: var(--space-5) 0;
@@ -188,38 +63,15 @@
   margin-bottom: var(--space-5);
 }
 
-/* Image Side */
-.auth-page__image-side {
-  background-image: url("https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&h=1000&fit=crop");
-  background-size: cover;
-  background-position: center;
-  position: relative;
+.auth-page__links {
   display: flex;
-  align-items: flex-end;
-  padding: var(--space-7);
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  font-size: var(--font-size-label);
 }
 
-.auth-page__image-side::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(27, 94, 32, 0.85) 0%, rgba(27, 94, 32, 0.3) 50%, transparent 100%);
-}
-
-.auth-page__image-content {
-  position: relative;
-  color: #ffffff;
-}
-
-.auth-page__image-content h2 {
-  font-size: var(--font-size-section-heading);
-  margin-bottom: var(--space-2);
-}
-
-.auth-page__image-content p {
-  font-size: var(--font-size-body);
-  opacity: 0.9;
-  line-height: 1.6;
+.auth-page__links a {
+  color: var(--color-primary);
 }
 
 .auth-page__submit-error {
