@@ -54,7 +54,6 @@ class Membership(Base):
     role = Column(String(50), server_default=text("'member'"))
     date_joined = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
-
 class Listing(Base):
     __tablename__ = "listings"
 
@@ -86,7 +85,7 @@ class ClaimRequest(Base):
     message_thread_id = Column(Integer, ForeignKey("message_threads.thread_id"))
 
     quantity_requested = Column(Integer, nullable=False)
-    status = Column(String(50), server_default=text("'pending'"))
+    status = Column(String(50), server_default=text("'requested'"))
     request_date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     closed_date = Column(DateTime, nullable=True)
 

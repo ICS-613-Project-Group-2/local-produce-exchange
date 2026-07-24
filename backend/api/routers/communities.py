@@ -15,9 +15,7 @@ from schemas import (
     InvitationResponse,
 )
 
-router = APIRouter(
-    prefix="/v1/communities"
-)
+router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +119,7 @@ def _num_members(db: Session, community_id: int) -> int:
 
 # lists communities for the current user with optional search filtering
 # returns two lists: communities the user is a member of, and public communities the user is not a member of
-@router.get("", response_model=CommunitiesListResponse)
+@router.get("/v1/communities", response_model=CommunitiesListResponse)
 def list_communities(
     search: str | None = Query(None),
     current_user: User = Depends(get_current_user),
@@ -156,7 +154,7 @@ def list_communities(
 
 # creates a new community and adds the current user as the owner
 # returns a CommunityResponse object with the new community's details
-@router.post("", response_model=CommunityResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/v1/communities", response_model=CommunityResponse, status_code=status.HTTP_201_CREATED)
 def create_community(
     created_community: CreateCommunity,
     current_user: User = Depends(get_current_user),
@@ -192,7 +190,7 @@ def create_community(
 
 # retrieves a community by ID and checks if the current user is allowed to view it (if it's private)
 # returns a CommunityResponse object with the community's details
-@router.get("/{community_id}", response_model=CommunityResponse)
+@router.get("/v1/communities/{community_id}", response_model=CommunityResponse)
 def get_community(
     community_id: int,
     current_user: User = Depends(get_current_user),
@@ -210,7 +208,7 @@ def get_community(
 
 # updates a community's details if the current user is a moderator or higher
 # returns a CommunityResponse object with the updated community's details
-@router.put("/{community_id}", response_model=CommunityResponse)
+@router.put("/v1/communities/{community_id}", response_model=CommunityResponse)
 def update_community(
     community_id: int,
     updated_community: CreateCommunity,
@@ -237,7 +235,7 @@ def update_community(
 
 # invites a user to a community by email if the current user has permission to do so
 # returns an InvitationResponse object with the details of the invitation
-@router.post("/{community_id}/invite", response_model=InvitationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/v1/communities/{community_id}/invite", response_model=InvitationResponse, status_code=status.HTTP_201_CREATED)
 def invite_to_community(
     community_id: int,
     invite_user_form: InviteUser,
@@ -286,9 +284,35 @@ def invite_to_community(
     return invitation
 
 
+@router.post("/v1/communities/{community_id}/join", response_model=Membership, status_code=status.HTTP_201_CREATED)
+def join_community(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # check if the community exists
+    _get_community(db, community_id)
+
+    # check if the user is already a member of the community
+    if _get_membership(db, community_id, current_user.user_id) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You are already a member of this community")
+
+    # create a new membership for the user and add it to the database
+    membership = Membership(
+        user_id = current_user.user_id,
+        community_id = community_id,
+        role = "member",
+        date_joined = datetime.now(datetime.timezone.utc),
+    )
+    db.add(membership)
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
 # allows a user to leave a community if they are a member and not the owner
 # returns a 204 No Content response if successful
-@router.post("/{community_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/v1/communities/{community_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
 def leave_community(
     community_id: int,
     current_user: User = Depends(get_current_user),
