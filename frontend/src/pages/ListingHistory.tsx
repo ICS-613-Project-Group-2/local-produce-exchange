@@ -11,6 +11,7 @@ import {
   listMyClaims,
   approveClaim,
   declineClaim,
+  pickupClaim,
   completeClaim,
   createReview,
   ApiError,
@@ -25,6 +26,8 @@ function statusBadgeStatus(status: string | null): BadgeStatus {
       return "pending";
     case "approved":
       return "approved";
+    case "picked_up":
+      return "picked-up";
     case "completed":
       return "completed";
     case "denied":
@@ -39,6 +42,7 @@ function statusBadgeStatus(status: string | null): BadgeStatus {
 function statusLabel(status: string | null): string {
   if (!status) return "Unknown";
   if (status === "cancelled") return "Canceled";
+  if (status === "picked_up") return "Picked Up";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -48,6 +52,7 @@ export default function ListingHistory() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ClaimHistoryResponse | null>(null);
 
   function loadClaims() {
@@ -65,15 +70,19 @@ export default function ListingHistory() {
     loadClaims();
   }, []);
 
-  function runAction(claim: ClaimHistoryResponse, action: (id: number) => Promise<unknown>) {
+  function runAction(claim: ClaimHistoryResponse, actionName: string, action: (id: number) => Promise<unknown>) {
     setActionError(null);
     setBusyId(claim.request_id);
+    setBusyAction(actionName);
     action(claim.request_id)
       .then(() => loadClaims())
       .catch((err) => {
         setActionError(err instanceof ApiError ? err.message : "That action could not be completed.");
       })
-      .finally(() => setBusyId(null));
+      .finally(() => {
+        setBusyId(null);
+        setBusyAction(null);
+      });
   }
 
   function handleReviewSubmitted(claimId: number) {
@@ -115,10 +124,12 @@ export default function ListingHistory() {
             <ClaimHistoryCard
               key={claim.request_id}
               claim={claim}
-              busy={busyId === claim.request_id}
-              onApprove={() => runAction(claim, approveClaim)}
-              onDecline={() => runAction(claim, declineClaim)}
-              onComplete={() => runAction(claim, completeClaim)}
+              isBusy={busyId === claim.request_id}
+              busyAction={busyId === claim.request_id ? busyAction : null}
+              onApprove={() => runAction(claim, "approve", approveClaim)}
+              onDecline={() => runAction(claim, "decline", declineClaim)}
+              onPickup={() => runAction(claim, "pickup", pickupClaim)}
+              onComplete={() => runAction(claim, "complete", completeClaim)}
               onLeaveReview={() => setReviewTarget(claim)}
             />
           ))}
@@ -138,18 +149,22 @@ export default function ListingHistory() {
 
 interface ClaimHistoryCardProps {
   claim: ClaimHistoryResponse;
-  busy: boolean;
+  isBusy: boolean;
+  busyAction: string | null;
   onApprove: () => void;
   onDecline: () => void;
+  onPickup: () => void;
   onComplete: () => void;
   onLeaveReview: () => void;
 }
 
 function ClaimHistoryCard({
   claim,
-  busy,
+  isBusy,
+  busyAction,
   onApprove,
   onDecline,
+  onPickup,
   onComplete,
   onLeaveReview,
 }: ClaimHistoryCardProps) {
@@ -184,16 +199,45 @@ function ClaimHistoryCard({
         <div className="history__actions">
           {claim.status === "requested" && claim.role === "owner" && (
             <>
-              <Button variant="primary" size="sm" onClick={onApprove} loading={busy}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onApprove}
+                loading={busyAction === "approve"}
+                disabled={isBusy}
+              >
                 Approve
               </Button>
-              <Button variant="outline" size="sm" onClick={onDecline} loading={busy}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDecline}
+                loading={busyAction === "decline"}
+                disabled={isBusy}
+              >
                 Decline
               </Button>
             </>
           )}
           {claim.status === "approved" && (
-            <Button variant="primary" size="sm" onClick={onComplete} loading={busy}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onPickup}
+              loading={busyAction === "pickup"}
+              disabled={isBusy}
+            >
+              Mark Picked Up
+            </Button>
+          )}
+          {claim.status === "picked_up" && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onComplete}
+              loading={busyAction === "complete"}
+              disabled={isBusy}
+            >
               Mark Complete
             </Button>
           )}

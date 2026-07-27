@@ -340,8 +340,38 @@ def cancel_claim(
     return claim
 
 
-# marks an approved claim as completed once the pickup has happened; either the requester
+# marks an approved claim as picked up once the handoff has happened; either the requester
 # or the listing owner can do this, since the actual handoff happens outside the app
+# returns a ClaimResponse object with the updated claim's details
+@router.put("/v1/claims/{claim_id}/pickup", response_model=ClaimResponse)
+def pickup_claim(
+    claim_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    claim = _get_claim(db, claim_id)
+    listing = _get_listing(db, claim.listing_id)
+
+    if claim.requester_user_id != current_user.user_id and listing.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only those who have made the claim request or the listing can perform this action",
+        )
+
+    if claim.status != STATUS_APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only approved claims can be marked as picked up",
+        )
+
+    claim.status = STATUS_PICKED_UP
+
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+
+# marks a picked-up claim as completed; either the requester or the listing owner can do this
 # completed claims can be reviewed by both participants
 # returns a ClaimResponse object with the updated claim's details
 @router.put("/v1/claims/{claim_id}/complete", response_model=ClaimResponse)
@@ -359,10 +389,10 @@ def complete_claim(
             detail="Only those who have made the claim request or the listing can perform this action",
         )
 
-    if claim.status != STATUS_APPROVED:
+    if claim.status != STATUS_PICKED_UP:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only approved claims can be marked as completed",
+            detail="Only picked-up claims can be marked as completed",
         )
 
     claim.status = STATUS_COMPLETED

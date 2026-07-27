@@ -241,7 +241,12 @@ export function cancelClaim(claimId: number): Promise<ClaimResponse> {
   return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/cancel`, { method: "PUT" });
 }
 
-// marks an approved claim as completed once the pickup has happened
+// marks an approved claim as picked up once the handoff has happened
+export function pickupClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/pickup`, { method: "PUT" });
+}
+
+// marks a picked-up claim as completed
 // unlocks the "Leave Review" action for both participants
 export function completeClaim(claimId: number): Promise<ClaimResponse> {
   return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/complete`, { method: "PUT" });
