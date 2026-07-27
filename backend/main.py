@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from models import Base
-from api.routers import login, listings, photos, communities
+from api.routers import login, listings, photos, communities, claims, reviews
 
 app = FastAPI()
 
@@ -23,6 +23,8 @@ app.include_router(login.router)
 app.include_router(listings.router)
 app.include_router(photos.router)
 app.include_router(communities.router)
+app.include_router(claims.router)
+app.include_router(reviews.router)
 
 @app.get("/")
 def index():

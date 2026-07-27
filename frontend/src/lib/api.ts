@@ -184,6 +184,116 @@ export function deleteListing(listingId: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------- CLAIMS ----------------------------------
+// ---------------------------------------------------------------------------
+
+export interface CreateClaimPayload {
+  quantity_requested: number;
+}
+
+export interface ClaimResponse {
+  request_id: number;
+  listing_id: number | null;
+  requester_user_id: number | null;
+  quantity_requested: number;
+  status: string | null;
+  request_date: string | null;
+  closed_date: string | null;
+}
+
+export interface ClaimHistoryResponse {
+  request_id: number;
+  listing_id: number | null;
+  listing_name: string;
+  listing_photo_url: string | null;
+  quantity_requested: number;
+  status: string | null;
+  request_date: string | null;
+  closed_date: string | null;
+  role: "owner" | "claimant";
+  other_user_id: number | null;
+  other_user_name: string | null;
+  can_review: boolean;
+  already_reviewed: boolean;
+}
+
+// submits a claim request for a listing
+// returns a ClaimResponse with the new claim's details
+export function createClaim(listingId: number, payload: CreateClaimPayload): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/listings/${listingId}/claims`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// approves a requested claim; only the listing owner can do this
+export function approveClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/approve`, { method: "PUT" });
+}
+
+// declines a requested claim; only the listing owner can do this
+export function declineClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/decline`, { method: "PUT" });
+}
+
+// cancels a requested or approved claim; the requester or the listing owner can do this
+export function cancelClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/cancel`, { method: "PUT" });
+}
+
+// marks an approved claim as completed once the pickup has happened
+// unlocks the "Leave Review" action for both participants
+export function completeClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/complete`, { method: "PUT" });
+}
+
+// lists every claim the current user is involved in, as either requester or listing owner
+// returns a list of ClaimHistoryResponse objects for the exchange history page
+export function listMyClaims(): Promise<ClaimHistoryResponse[]> {
+  return apiFetch<ClaimHistoryResponse[]>("/v1/claims/mine");
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------- REVIEWS ---------------------------------
+// ---------------------------------------------------------------------------
+
+export interface CreateReviewPayload {
+  rating: number;
+  comment?: string | null;
+}
+
+export interface ReviewResponse {
+  review_id: number;
+  claim_request_id: number | null;
+  reviewer_user_id: number | null;
+  reviewer_name: string | null;
+  reviewed_user_id: number | null;
+  rating: number;
+  comment: string | null;
+  review_date: string | null;
+}
+
+export interface UserReviewsResponse {
+  average_rating: number | null;
+  review_count: number;
+  reviews: ReviewResponse[];
+}
+
+// submits a review of the other participant on a completed exchange
+// returns a ReviewResponse with the new review's details
+export function createReview(claimId: number, payload: CreateReviewPayload): Promise<ReviewResponse> {
+  return apiFetch<ReviewResponse>(`/v1/claims/${claimId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// retrieves the reviews a user has received, along with their average rating
+export function getUserReviews(userId: number): Promise<UserReviewsResponse> {
+  return apiFetch<UserReviewsResponse>(`/v1/users/${userId}/reviews`);
+}
+
+// ---------------------------------------------------------------------------
 // -------------------------------- COMMUNITIES -------------------------------
 // ---------------------------------------------------------------------------
 
@@ -221,6 +331,13 @@ export interface InvitationResponse {
   expiration_date: string | null;
 }
 
+export interface MembershipResponse {
+  user_id: number;
+  community_id: number;
+  role: string | null;
+  date_joined: string | null;
+}
+
 // lists communities the current user is a member of, plus public communities they are not in
 // returns a CommunitiesListResponse split into my_communities and public_communities
 export function listCommunities(search?: string): Promise<CommunitiesListResponse> {
@@ -252,6 +369,14 @@ export function inviteToCommunity(
   return apiFetch<InvitationResponse>(`/v1/communities/${communityId}/invite`, {
     method: "POST",
     body: JSON.stringify({ email }),
+  });
+}
+
+// joins a public community, or requests to join a private one, as the current user
+// returns a MembershipResponse with the new membership's details
+export function joinCommunity(communityId: number): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/join`, {
+    method: "POST",
   });
 }
 
@@ -289,6 +414,7 @@ export interface User {
   profile_photo_id: number | null;
   profile_photo_url: string | null;
   rating: number | null;
+  review_count: number;
 }
 
 // registers a new user account

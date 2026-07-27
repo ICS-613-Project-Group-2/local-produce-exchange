@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from api.deps import get_current_user
-from models import ClaimRequest, Listing, MessageThread, User
-from schemas import CreateClaim, ClaimResponse
+from models import ClaimRequest, Listing, MessageThread, Review, User
+from schemas import CreateClaim, ClaimResponse, ClaimHistoryResponse
 
 router = APIRouter()
 
@@ -56,9 +56,79 @@ def _get_claim(db: Session, claim_id: int) -> ClaimRequest:
     return claim
 
 
+# builds a ClaimHistoryResponse for a claim from the perspective of the given user,
+# who is either the claim's requester or the owner of the listing it's on
+# returns a ClaimHistoryResponse with listing and counterparty details, and whether
+# the given user is still able to leave a review for this claim
+def _serialize_claim_history(
+    claim: ClaimRequest,
+    listing: Listing | None,
+    current_user_id: int,
+    reviewed_claim_ids: set[int],
+    db: Session,
+) -> ClaimHistoryResponse:
+    is_owner = listing is not None and listing.user_id == current_user_id
+    other_user_id = claim.requester_user_id if is_owner else (listing.user_id if listing else None)
+    other_user = (
+        db.query(User).filter(User.user_id == other_user_id).first()
+        if other_user_id is not None
+        else None
+    )
+
+    return ClaimHistoryResponse(
+        request_id=claim.request_id,
+        listing_id=claim.listing_id,
+        listing_name=listing.name if listing else "Listing removed",
+        listing_photo_url=listing.photos[0].image_link if listing and listing.photos else None,
+        quantity_requested=claim.quantity_requested,
+        status=claim.status,
+        request_date=claim.request_date,
+        closed_date=claim.closed_date,
+        role="owner" if is_owner else "claimant",
+        other_user_id=other_user_id,
+        other_user_name=other_user.name if other_user else None,
+        can_review=claim.status == STATUS_COMPLETED and claim.request_id not in reviewed_claim_ids,
+        already_reviewed=claim.request_id in reviewed_claim_ids,
+    )
+
+
 # ---------------------------------------------------------------------------
 # ------------------------------- API METHODS -------------------------------
 # ---------------------------------------------------------------------------
+
+# lists every claim the current user is involved in, either as the requester or as
+# the owner of the listing being claimed, for display on the exchange history page
+# returns a list of ClaimHistoryResponse objects, most recent first
+@router.get("/v1/claims/mine", response_model=list[ClaimHistoryResponse])
+def list_my_claims(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    claims = (
+        db.query(ClaimRequest)
+        .join(Listing, Listing.listing_id == ClaimRequest.listing_id)
+        .filter(
+            (ClaimRequest.requester_user_id == current_user.user_id)
+            | (Listing.user_id == current_user.user_id)
+        )
+        .order_by(ClaimRequest.request_date.desc())
+        .all()
+    )
+
+    # claims the current user has already left a review for, so the history page
+    # can show "Review submitted" instead of a "Leave Review" button
+    reviewed_claim_ids = {
+        row[0]
+        for row in db.query(Review.claim_request_id)
+        .filter(Review.reviewer_user_id == current_user.user_id)
+        .all()
+    }
+
+    return [
+        # the join above guarantees a matching listing exists for every claim returned here
+        _serialize_claim_history(claim, _get_listing(db, claim.listing_id), current_user.user_id, reviewed_claim_ids, db)
+        for claim in claims
+    ]
 
 # lists claims for a listing
 # the listing owner sees every claim on their listing; anyone else only sees their own claim(s)
@@ -118,7 +188,7 @@ def create_claim(
         .filter(
             ClaimRequest.listing_id == listing_id,
             ClaimRequest.requester_user_id == current_user.user_id,
-            ClaimRequest.status.notin_(STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED),
+            ClaimRequest.status.notin_([STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED]),
         )
         .first()
     )
@@ -263,6 +333,39 @@ def cancel_claim(
             listing.status = "available"
 
     claim.status = STATUS_CANCELLED
+    claim.closed_date = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+
+# marks an approved claim as completed once the pickup has happened; either the requester
+# or the listing owner can do this, since the actual handoff happens outside the app
+# completed claims can be reviewed by both participants
+# returns a ClaimResponse object with the updated claim's details
+@router.put("/v1/claims/{claim_id}/complete", response_model=ClaimResponse)
+def complete_claim(
+    claim_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    claim = _get_claim(db, claim_id)
+    listing = _get_listing(db, claim.listing_id)
+
+    if claim.requester_user_id != current_user.user_id and listing.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only those who have made the claim request or the listing can perform this action",
+        )
+
+    if claim.status != STATUS_APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only approved claims can be marked as completed",
+        )
+
+    claim.status = STATUS_COMPLETED
     claim.closed_date = datetime.now(timezone.utc)
 
     db.commit()

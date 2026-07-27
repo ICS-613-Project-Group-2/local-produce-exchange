@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from api.deps import get_current_user
+from api.routers.reviews import get_user_rating
 from core.auth import hash_password, verify_password, create_access_tkn
 
 from models import User
@@ -70,5 +71,8 @@ def login_user(
 @router.get("/me", response_model=GetUser)
 def get_me(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    return current_user
+    response = GetUser.model_validate(current_user)
+    response.rating, response.review_count = get_user_rating(db, current_user.user_id)
+    return response

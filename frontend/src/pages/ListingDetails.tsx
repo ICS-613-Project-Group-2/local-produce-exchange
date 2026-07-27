@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
 import FormField, { Input } from "../components/ui/FormField";
-import { getListing, getCommunity, ApiError, type ListingResponse, type CommunityResponse } from "../lib/api";
+import { getListing, getCommunity, createClaim, ApiError, type ListingResponse, type CommunityResponse } from "../lib/api";
 import { NO_PHOTO_URL } from "../lib/placeholder";
 import "./ListingDetails.css";
 
@@ -19,6 +19,7 @@ export default function ListingDetails() {
   const [claimQuantity, setClaimQuantity] = useState("");
   const [claimSubmitted, setClaimSubmitted] = useState(false);
   const [claimError, setClaimError] = useState("");
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -78,7 +79,13 @@ export default function ListingDetails() {
       return;
     }
     setClaimError("");
-    setClaimSubmitted(true);
+    setClaimSubmitting(true);
+    createClaim(listingId, { quantity_requested: qty })
+      .then(() => setClaimSubmitted(true))
+      .catch((err) => {
+        setClaimError(err instanceof ApiError ? err.message : "Failed to submit claim request.");
+      })
+      .finally(() => setClaimSubmitting(false));
   }
 
   return (
@@ -164,7 +171,7 @@ export default function ListingDetails() {
                     hasError={!!claimError}
                   />
                 </FormField>
-                <Button variant="primary" type="submit">
+                <Button variant="primary" type="submit" loading={claimSubmitting}>
                   Submit Claim Request
                 </Button>
               </form>

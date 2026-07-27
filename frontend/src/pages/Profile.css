@@ -1,3 +1,10 @@
+.profile__status-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
 /* Tabs */
 .profile__tabs {
   display: flex;

@@ -1,23 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockUsers } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
+import { getUserReviews, ApiError, type ReviewResponse } from "../lib/api";
 import "./Profile.css";
-
-// Simulate logged-in user as Lily Chen (user_id 1)
-const currentUser = mockUsers[0];
-
-const mockReviews = [
-  { id: 1, reviewer: "Oliver Lee", rating: 5, comment: "Tomatoes were super fresh! Easy pickup.", date: "2026-06-25" },
-  { id: 2, reviewer: "Glen Kim", rating: 5, comment: "Always reliable and generous. Thank you!", date: "2026-06-22" },
-];
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
+  const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <div className="page-container">
+        <p className="profile__status-message">Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -38,34 +40,57 @@ export default function Profile() {
         </button>
       </div>
 
-      {activeTab === "profile" ? <PublicProfile /> : <ProfileSettings />}
+      {activeTab === "profile" ? <PublicProfile userId={user.user_id} name={user.name} email={user.email} photoUrl={user.profile_photo_url} /> : <ProfileSettings name={user.name} email={user.email} photoUrl={user.profile_photo_url} />}
     </div>
   );
 }
 
-function PublicProfile() {
+interface PublicProfileProps {
+  userId: number;
+  name: string;
+  email: string;
+  photoUrl: string | null;
+}
+
+function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setLoadError(null);
+    getUserReviews(userId)
+      .then((result) => {
+        setReviews(result.reviews);
+        setAverageRating(result.average_rating);
+      })
+      .catch((err) => {
+        setLoadError(err instanceof ApiError ? err.message : "Reviews could not be loaded.");
+      })
+      .finally(() => setLoading(false));
+  }, [userId]);
+
   return (
     <div className="profile__content">
       {/* Profile Card */}
       <Card variant="warm">
         <CardBody>
           <div className="profile__header">
-            {currentUser.profile_photo_url ? (
-              <img
-                src={currentUser.profile_photo_url}
-                alt={currentUser.name}
-                className="profile__avatar"
-              />
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} className="profile__avatar" />
             ) : (
-              <div className="profile__avatar profile__avatar--placeholder">
-                {currentUser.name[0]}
-              </div>
+              <div className="profile__avatar profile__avatar--placeholder">{name[0]}</div>
             )}
             <div className="profile__info">
-              <h2>{currentUser.name}</h2>
-              {currentUser.location && <p className="profile__location">📍 {currentUser.location}</p>}
-              {currentUser.rating && <p className="profile__rating">⭐ {currentUser.rating} rating</p>}
-              <p className="profile__email">{currentUser.email}</p>
+              <h2>{name}</h2>
+              {averageRating !== null && (
+                <p className="profile__rating">
+                  ⭐ {averageRating} rating ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
+                </p>
+              )}
+              <p className="profile__email">{email}</p>
             </div>
           </div>
         </CardBody>
@@ -74,20 +99,24 @@ function PublicProfile() {
       {/* Reviews */}
       <section className="profile__section">
         <h2>Reviews</h2>
-        {mockReviews.length > 0 ? (
+        {loading ? (
+          <p className="profile__status-message">Loading reviews...</p>
+        ) : loadError ? (
+          <p className="profile__status-message">{loadError}</p>
+        ) : reviews.length > 0 ? (
           <div className="profile__reviews">
-            {mockReviews.map((review) => (
-              <Card key={review.id}>
+            {reviews.map((review) => (
+              <Card key={review.review_id}>
                 <CardBody>
                   <div className="profile__review">
                     <div className="profile__review-header">
-                      <span className="profile__review-name">{review.reviewer}</span>
-                      <span className="profile__review-rating">
-                        {"⭐".repeat(review.rating)}
-                      </span>
+                      <span className="profile__review-name">{review.reviewer_name ?? "A community member"}</span>
+                      <span className="profile__review-rating">{"⭐".repeat(review.rating)}</span>
                     </div>
-                    <p className="profile__review-comment">{review.comment}</p>
-                    <p className="profile__review-date">{new Date(review.date).toLocaleDateString()}</p>
+                    {review.comment && <p className="profile__review-comment">{review.comment}</p>}
+                    {review.review_date && (
+                      <p className="profile__review-date">{new Date(review.review_date).toLocaleDateString()}</p>
+                    )}
                   </div>
                 </CardBody>
               </Card>
@@ -117,11 +146,17 @@ function PublicProfile() {
   );
 }
 
-function ProfileSettings() {
+interface ProfileSettingsProps {
+  name: string;
+  email: string;
+  photoUrl: string | null;
+}
+
+function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
   const [formData, setFormData] = useState({
-    name: currentUser.name,
-    email: currentUser.email,
-    location: currentUser.location || "",
+    name,
+    email,
+    location: "",
     bio: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -171,16 +206,10 @@ function ProfileSettings() {
             <section className="profile__form-section">
               <h2>Profile Photo</h2>
               <div className="profile__photo-upload">
-                {currentUser.profile_photo_url ? (
-                  <img
-                    src={currentUser.profile_photo_url}
-                    alt={currentUser.name}
-                    className="profile__avatar"
-                  />
+                {photoUrl ? (
+                  <img src={photoUrl} alt={name} className="profile__avatar" />
                 ) : (
-                  <div className="profile__avatar profile__avatar--placeholder">
-                    {currentUser.name[0]}
-                  </div>
+                  <div className="profile__avatar profile__avatar--placeholder">{name[0]}</div>
                 )}
                 <input type="file" accept="image/*" className="profile__file-input" />
               </div>

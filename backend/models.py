@@ -151,6 +151,8 @@ class Review(Base):
     comment = Column(Text, nullable=True)
     review_date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
+    reviewer = relationship("User", foreign_keys=[reviewer_user_id])
+
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="reviews_rating_check"),
         UniqueConstraint(

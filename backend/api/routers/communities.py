@@ -13,6 +13,7 @@ from schemas import (
     CommunitiesListResponse,
     InviteUser,
     InvitationResponse,
+    MembershipResponse,
 )
 
 router = APIRouter()
@@ -284,7 +285,7 @@ def invite_to_community(
     return invitation
 
 
-@router.post("/v1/communities/{community_id}/join", response_model=Membership, status_code=status.HTTP_201_CREATED)
+@router.post("/v1/communities/{community_id}/join", response_model=MembershipResponse, status_code=status.HTTP_201_CREATED)
 def join_community(
     community_id: int,
     current_user: User = Depends(get_current_user),
@@ -302,7 +303,7 @@ def join_community(
         user_id = current_user.user_id,
         community_id = community_id,
         role = "member",
-        date_joined = datetime.now(datetime.timezone.utc),
+        date_joined = datetime.now(timezone.utc),
     )
     db.add(membership)
     db.commit()

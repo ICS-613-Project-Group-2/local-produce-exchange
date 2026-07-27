@@ -6,7 +6,7 @@ import Button from "../components/ui/Button";
 import Card, { CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { listCommunities, ApiError, type CommunityResponse } from "../lib/api";
+import { listCommunities, joinCommunity, ApiError, type CommunityResponse } from "../lib/api";
 import "./Communities.css";
 
 export default function Communities() {
@@ -15,6 +15,8 @@ export default function Communities() {
   const [publicCommunities, setPublicCommunities] = useState<CommunityResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [joiningId, setJoiningId] = useState<number | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -41,6 +43,22 @@ export default function Communities() {
     return myCommunityIds.has(communityId) ? "joined" : "none";
   }
 
+  async function handleJoin(community: CommunityResponse) {
+    setJoiningId(community.community_id);
+    setJoinError(null);
+    try {
+      await joinCommunity(community.community_id);
+      // move the community from the public list into "my communities" locally,
+      // rather than re-fetching, so the card updates immediately
+      setPublicCommunities((prev) => prev.filter((c) => c.community_id !== community.community_id));
+      setMyCommunities((prev) => [...prev, { ...community, member_count: community.member_count + 1 }]);
+    } catch (err) {
+      setJoinError(err instanceof ApiError ? err.message : "Failed to join community.");
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
   return (
     <div className="page-container">
       <PageHeader
@@ -59,6 +77,8 @@ export default function Communities() {
           onSearch={handleSearch}
         />
       </div>
+
+      {joinError && <p className="communities__status-message">{joinError}</p>}
 
       {loading ? (
         <p className="communities__status-message">Loading communities...</p>
@@ -109,7 +129,14 @@ export default function Communities() {
                   ) : community.is_private ? (
                     <Button variant="secondary" size="sm">Request to Join</Button>
                   ) : (
-                    <Button variant="primary" size="sm">Join Community</Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleJoin(community)}
+                      loading={joiningId === community.community_id}
+                    >
+                      Join Community
+                    </Button>
                   )}
                 </CardFooter>
               </Card>
