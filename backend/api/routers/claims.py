@@ -247,7 +247,7 @@ def cancel_claim(
             detail="Only those who have made the claim request or the listing can perform this action",
         )
 
-    if claim.status not in ((STATUS_REQUESTED, STATUS_APPROVED)):
+    if claim.status not in (STATUS_REQUESTED, STATUS_APPROVED):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only requested or approved claims can be cancelled; cancellation after pickup is not allowed",

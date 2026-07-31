@@ -102,7 +102,7 @@ def post_message(
     db: Session = Depends(get_db),
 ):
     claim = _get_claim(db, claim_id)
-    listing = _get_listing(db, claim, current_user.user_id)
+    listing = _get_listing(db, claim.listing_id)
     if current_user.user_id not in (claim.requester_user_id, listing.user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -122,3 +122,4 @@ def post_message(
     db.commit()
     db.refresh(message)
     return message
+
