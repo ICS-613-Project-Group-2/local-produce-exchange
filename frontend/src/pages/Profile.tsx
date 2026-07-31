@@ -1,95 +1,95 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockUsers, mockListings, mockMemberships, mockCommunities } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
+import {
+  browseListings,
+  listCommunities,
+  type ListingResponse,
+  type CommunityResponse,
+} from "../lib/api";
 import "./Profile.css";
-
-const currentUser = mockUsers[0]; // Lily Chen
-
-const mockReviews = [
-  { id: 1, reviewer: "Oliver L.", rating: 5, comment: "Tomatoes were super fresh! Easy pickup.", date: "2026-06-25" },
-  { id: 2, reviewer: "Glen K.", rating: 5, comment: "Always reliable and generous. Thank you!", date: "2026-06-22" },
-  { id: 3, reviewer: "Rose J.", rating: 4, comment: "Great zucchini, arrived exactly as described.", date: "2026-06-18" },
-];
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
-
-  // Stats
-  const myListings = mockListings.filter((l) => l.user_id === currentUser.user_id);
-  const completedCount = myListings.filter((l) => l.status === "completed").length;
-  const myCommunities = mockMemberships.filter((m) => m.user_id === currentUser.user_id);
 
   return (
     <div className="page-container">
       <PageHeader title="Profile" />
 
       <div className="profile__tabs">
-        <button
-          className={`profile__tab ${activeTab === "profile" ? "profile__tab--active" : ""}`}
-          onClick={() => setActiveTab("profile")}
-        >
+        <button className={`profile__tab ${activeTab === "profile" ? "profile__tab--active" : ""}`} onClick={() => setActiveTab("profile")}>
           Public Profile
         </button>
-        <button
-          className={`profile__tab ${activeTab === "settings" ? "profile__tab--active" : ""}`}
-          onClick={() => setActiveTab("settings")}
-        >
+        <button className={`profile__tab ${activeTab === "settings" ? "profile__tab--active" : ""}`} onClick={() => setActiveTab("settings")}>
           Settings
         </button>
       </div>
 
-      {activeTab === "profile" ? (
-        <PublicProfile
-          listingCount={myListings.length}
-          completedCount={completedCount}
-          communityCount={myCommunities.length}
-          reviewCount={mockReviews.length}
-        />
-      ) : (
-        <ProfileSettings />
-      )}
+      {activeTab === "profile" ? <PublicProfile /> : <ProfileSettings />}
     </div>
   );
 }
 
-function PublicProfile({ listingCount, completedCount, communityCount, reviewCount }: {
-  listingCount: number; completedCount: number; communityCount: number; reviewCount: number;
-}) {
-  const myCommunityIds = mockMemberships.filter((m) => m.user_id === currentUser.user_id).map((m) => m.community_id);
-  const myCommunities = mockCommunities.filter((c) => myCommunityIds.includes(c.community_id));
+function PublicProfile() {
+  const { user } = useAuth();
+  const [myListings, setMyListings] = useState<ListingResponse[]>([]);
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  async function loadProfile() {
+    setLoading(true);
+    try {
+      const [listings, commData] = await Promise.all([
+        browseListings().catch(() => []),
+        listCommunities().catch(() => ({ my_communities: [], public_communities: [] })),
+      ]);
+      setMyListings(listings.filter((l) => l.user_id === user?.user_id));
+      setMyCommunities(commData.my_communities);
+    } catch {
+      // fail gracefully
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <p>Loading profile...</p>;
+
+  const completedCount = myListings.filter((l) => l.status === "completed").length;
 
   return (
     <div className="profile__content">
-      {/* Profile Card */}
       <Card variant="warm">
         <CardBody>
           <div className="profile__header">
             <div className="profile__avatar-wrapper">
-              {currentUser.profile_photo_url ? (
-                <img src={currentUser.profile_photo_url} alt={currentUser.name} className="profile__avatar" />
+              {user?.profile_photo_url ? (
+                <img src={user.profile_photo_url} alt={user.name} className="profile__avatar" />
               ) : (
-                <div className="profile__avatar profile__avatar--placeholder">{currentUser.name[0]}</div>
+                <div className="profile__avatar profile__avatar--placeholder">{user?.name?.[0] || "?"}</div>
               )}
             </div>
             <div className="profile__info">
-              <h2>{currentUser.name}</h2>
-              {currentUser.location && <p className="profile__location">📍 {currentUser.location}</p>}
-              {currentUser.rating && <p className="profile__rating">⭐ {currentUser.rating} rating ({reviewCount} reviews)</p>}
-              <p className="profile__email">{currentUser.email}</p>
+              <h2>{user?.name}</h2>
+              {user?.location && <p className="profile__location">📍 {user.location}</p>}
+              {user?.rating && <p className="profile__rating">⭐ {user.rating} rating</p>}
+              <p className="profile__email">{user?.email}</p>
             </div>
           </div>
         </CardBody>
       </Card>
 
-      {/* Stats Row */}
       <div className="profile__stats">
         <div className="profile__stat">
-          <span className="profile__stat-number">{listingCount}</span>
+          <span className="profile__stat-number">{myListings.length}</span>
           <span className="profile__stat-label">Listings</span>
         </div>
         <div className="profile__stat">
@@ -97,55 +97,29 @@ function PublicProfile({ listingCount, completedCount, communityCount, reviewCou
           <span className="profile__stat-label">Completed</span>
         </div>
         <div className="profile__stat">
-          <span className="profile__stat-number">{communityCount}</span>
+          <span className="profile__stat-number">{myCommunities.length}</span>
           <span className="profile__stat-label">Communities</span>
-        </div>
-        <div className="profile__stat">
-          <span className="profile__stat-number">{reviewCount}</span>
-          <span className="profile__stat-label">Reviews</span>
         </div>
       </div>
 
-      {/* Communities */}
-      <section className="profile__section">
-        <h2>Communities</h2>
-        <div className="profile__communities-list">
-          {myCommunities.map((c) => (
-            <Link key={c.community_id} to={`/communities/${c.community_id}`} className="profile__community-chip">
-              {c.name}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="profile__section">
-        <h2>Reviews</h2>
-        {mockReviews.length > 0 ? (
-          <div className="profile__reviews">
-            {mockReviews.map((review) => (
-              <Card key={review.id}>
-                <CardBody>
-                  <div className="profile__review">
-                    <div className="profile__review-header">
-                      <span className="profile__review-name">{review.reviewer}</span>
-                      <span className="profile__review-rating">
-                        {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
-                      </span>
-                    </div>
-                    <p className="profile__review-comment">{review.comment}</p>
-                    <p className="profile__review-date">{new Date(review.date).toLocaleDateString()}</p>
-                  </div>
-                </CardBody>
-              </Card>
+      {myCommunities.length > 0 && (
+        <section className="profile__section">
+          <h2>Communities</h2>
+          <div className="profile__communities-list">
+            {myCommunities.map((c) => (
+              <Link key={c.community_id} to={`/communities/${c.community_id}`} className="profile__community-chip">
+                {c.name}
+              </Link>
             ))}
           </div>
-        ) : (
-          <EmptyState title="No reviews yet" description="Reviews will appear here after you complete exchanges." />
-        )}
+        </section>
+      )}
+
+      <section className="profile__section">
+        <h2>Reviews</h2>
+        <EmptyState title="No reviews yet" description="Reviews will appear here after you complete exchanges." />
       </section>
 
-      {/* Quick Links */}
       <section className="profile__section">
         <div className="profile__links">
           <Link to="/history"><Button variant="outline">View Listing History</Button></Link>
@@ -157,10 +131,11 @@ function PublicProfile({ listingCount, completedCount, communityCount, reviewCou
 }
 
 function ProfileSettings() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: currentUser.name,
-    email: currentUser.email,
-    location: currentUser.location || "",
+    name: user?.name || "",
+    email: user?.email || "",
+    location: user?.location || "",
     bio: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -193,13 +168,12 @@ function ProfileSettings() {
     }
     setErrors({});
     setSaved(true);
+    // TODO: Call updateProfile API once endpoint exists
   }
 
   return (
     <div className="profile__content">
-      {saved && (
-        <div className="profile__save-success">✅ Profile updated successfully.</div>
-      )}
+      {saved && <div className="profile__save-success">✅ Profile updated successfully.</div>}
 
       <Card>
         <CardBody>
@@ -207,10 +181,10 @@ function ProfileSettings() {
             <section className="profile__form-section">
               <h2>Profile Photo</h2>
               <div className="profile__photo-upload">
-                {currentUser.profile_photo_url ? (
-                  <img src={currentUser.profile_photo_url} alt={currentUser.name} className="profile__avatar" />
+                {user?.profile_photo_url ? (
+                  <img src={user.profile_photo_url} alt={user.name} className="profile__avatar" />
                 ) : (
-                  <div className="profile__avatar profile__avatar--placeholder">{currentUser.name[0]}</div>
+                  <div className="profile__avatar profile__avatar--placeholder">{user?.name?.[0] || "?"}</div>
                 )}
                 <div className="profile__photo-actions">
                   <Button variant="outline" size="sm">Upload New Photo</Button>
@@ -225,7 +199,7 @@ function ProfileSettings() {
                 <Input id="name" name="name" value={formData.name} onChange={handleChange} hasError={!!errors.name} />
               </FormField>
               <FormField label="Email" htmlFor="email" required error={errors.email}>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} hasError={!!errors.email} />
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} hasError={!!errors.email} disabled />
               </FormField>
               <FormField label="Location" htmlFor="location" helperText="General area shown to other users.">
                 <Input id="location" name="location" placeholder="e.g., Mānoa Valley" value={formData.location} onChange={handleChange} />

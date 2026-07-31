@@ -1,65 +1,72 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
+import { useAuth } from "../context/AuthContext";
 import {
-  mockListings,
-  mockClaimRequests,
-  mockNotifications,
-  mockCommunities,
-  mockMemberships,
-  getThreadsForUser,
-  getUserById,
-  getListingById,
-} from "../data/mockData";
-import { displayName } from "../data/utils";
+  browseListings,
+  listCommunities,
+  type ListingResponse,
+  type CommunityResponse,
+} from "../lib/api";
+import type { BadgeStatus } from "../components/ui/StatusBadge";
 import "./Dashboard.css";
 
-const CURRENT_USER_ID = 1;
-const currentUser = getUserById(CURRENT_USER_ID)!;
-
 export default function Dashboard() {
-  // User's own listings
-  const myListings = mockListings.filter((l) => l.user_id === CURRENT_USER_ID);
+  const { user } = useAuth();
+  const [myListings, setMyListings] = useState<ListingResponse[]>([]);
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  async function loadDashboard() {
+    setLoading(true);
+    try {
+      const [listingsData, commData] = await Promise.all([
+        browseListings().catch(() => []),
+        listCommunities().catch(() => ({ my_communities: [], public_communities: [] })),
+      ]);
+      // Filter to only user's own listings
+      setMyListings(listingsData.filter((l) => l.user_id === user?.user_id));
+      setMyCommunities(commData.my_communities);
+    } catch {
+      // Fail gracefully
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="page-container"><p>Loading dashboard...</p></div>;
+  }
+
   const activeListings = myListings.filter((l) => l.status === "available" || l.status === "expiring-soon");
   const reservedListings = myListings.filter((l) => l.status === "reserved");
 
-  // Expiring soon (within 2 days)
   const expiringSoon = activeListings.filter((l) => {
+    if (!l.expiration_date) return false;
     const daysLeft = Math.ceil((new Date(l.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return daysLeft <= 2 && daysLeft >= 0;
   });
 
-  // Outgoing claims
-  const myClaims = mockClaimRequests.filter((cr) => cr.requester_user_id === CURRENT_USER_ID);
-  const pendingClaims = myClaims.filter((cr) => cr.status === "pending" || cr.status === "approved");
-
-  // Messages
-  const threads = getThreadsForUser(CURRENT_USER_ID).slice(0, 3);
-
-  // Notifications
-  const unreadNotifications = mockNotifications.filter((n) => n.user_id === CURRENT_USER_ID && !n.is_read);
-
-  // Communities
-  const userCommunityIds = mockMemberships
-    .filter((m) => m.user_id === CURRENT_USER_ID)
-    .map((m) => m.community_id);
-  const userCommunities = mockCommunities.filter((c) => userCommunityIds.includes(c.community_id));
-
   return (
     <div className="page-container">
-      {/* Personalized Greeting */}
+      {/* Greeting */}
       <div className="dashboard__greeting">
-        {currentUser.profile_photo_url ? (
-          <img src={currentUser.profile_photo_url} alt={currentUser.name} className="dashboard__greeting-avatar" />
+        {user?.profile_photo_url ? (
+          <img src={user.profile_photo_url} alt={user.name} className="dashboard__greeting-avatar" />
         ) : (
           <div className="dashboard__greeting-avatar dashboard__greeting-avatar--placeholder">
-            {currentUser.name[0]}
+            {user?.name?.[0] || "?"}
           </div>
         )}
         <div>
-          <h1>Welcome back, {currentUser.name.split(" ")[0]}! 🌱</h1>
+          <h1>Welcome back, {user?.name?.split(" ")[0] || "there"}! 🌱</h1>
           <p className="dashboard__greeting-subtitle">Here's what's happening with your food exchanges.</p>
         </div>
       </div>
@@ -72,7 +79,7 @@ export default function Dashboard() {
         <Link to="/communities"><Button variant="outline">Communities</Button></Link>
       </div>
 
-      {/* Expiring Soon Alert */}
+      {/* Expiring Soon */}
       {expiringSoon.length > 0 && (
         <div className="dashboard__alert">
           <span className="dashboard__alert-icon">⚠️</span>
@@ -86,7 +93,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Summary Cards */}
+      {/* Summary */}
       <div className="dashboard__summary">
         <Card className="dashboard__stat-card dashboard__stat-card--green">
           <CardBody>
@@ -106,60 +113,34 @@ export default function Dashboard() {
             </div>
           </CardBody>
         </Card>
-        <Card className="dashboard__stat-card dashboard__stat-card--orange">
-          <CardBody>
-            <div className="dashboard__stat">
-              <span className="dashboard__stat-icon">🔔</span>
-              <span className="dashboard__stat-number">{unreadNotifications.length}</span>
-              <span className="dashboard__stat-label">Unread Notifications</span>
-            </div>
-          </CardBody>
-        </Card>
         <Card className="dashboard__stat-card dashboard__stat-card--blue">
           <CardBody>
             <div className="dashboard__stat">
-              <span className="dashboard__stat-icon">📦</span>
-              <span className="dashboard__stat-number">{pendingClaims.length}</span>
-              <span className="dashboard__stat-label">Pending Claims</span>
+              <span className="dashboard__stat-icon">🏘️</span>
+              <span className="dashboard__stat-number">{myCommunities.length}</span>
+              <span className="dashboard__stat-label">Communities</span>
             </div>
           </CardBody>
         </Card>
       </div>
 
-      {/* Recent Notifications */}
-      {unreadNotifications.length > 0 && (
+      {/* Communities */}
+      {myCommunities.length > 0 && (
         <section className="dashboard__section">
           <div className="dashboard__section-header">
-            <h2>Recent Notifications</h2>
-            <Link to="/notifications"><Button variant="outline" size="sm">View All</Button></Link>
+            <h2>My Communities</h2>
+            <Link to="/communities"><Button variant="outline" size="sm">Browse All</Button></Link>
           </div>
-          <div className="dashboard__notifications">
-            {unreadNotifications.slice(0, 3).map((n) => (
-              <div key={n.notification_id} className="dashboard__notification-item">
-                <span className="dashboard__notification-dot" />
-                <p>{n.content}</p>
-                <span className="dashboard__notification-time">{new Date(n.timestamp).toLocaleDateString()}</span>
-              </div>
+          <div className="dashboard__communities">
+            {myCommunities.map((community) => (
+              <Link key={community.community_id} to={`/communities/${community.community_id}`} className="dashboard__community-chip">
+                <StatusBadge status={community.is_private ? "private" : "public"} />
+                <span>{community.name}</span>
+              </Link>
             ))}
           </div>
         </section>
       )}
-
-      {/* My Communities */}
-      <section className="dashboard__section">
-        <div className="dashboard__section-header">
-          <h2>My Communities</h2>
-          <Link to="/communities"><Button variant="outline" size="sm">Browse All</Button></Link>
-        </div>
-        <div className="dashboard__communities">
-          {userCommunities.map((community) => (
-            <Link key={community.community_id} to={`/communities/${community.community_id}`} className="dashboard__community-chip">
-              <StatusBadge status={community.is_private ? "private" : "public"} />
-              <span>{community.name}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {/* Active Listings */}
       <section className="dashboard__section">
@@ -179,14 +160,15 @@ export default function Dashboard() {
               <Card key={listing.listing_id}>
                 <CardBody>
                   <div className="dashboard__listing-row">
-                    <img src={listing.photo_url} alt={listing.name} className="dashboard__listing-thumb" />
+                    {listing.photo_url && <img src={listing.photo_url} alt={listing.name} className="dashboard__listing-thumb" />}
                     <div className="dashboard__listing-info">
                       <div className="dashboard__listing-header">
                         <h3>{listing.name}</h3>
-                        <StatusBadge status={listing.status} />
+                        {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
                       </div>
                       <p className="dashboard__listing-meta">
-                        {listing.quantity} {listing.unit} · Expires {new Date(listing.expiration_date).toLocaleDateString()}
+                        {listing.quantity} {listing.unit}
+                        {listing.expiration_date && ` · Expires ${new Date(listing.expiration_date).toLocaleDateString()}`}
                       </p>
                     </div>
                     <div className="dashboard__listing-actions">
@@ -201,98 +183,31 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Reserved / Pending Claims */}
-      <section className="dashboard__section">
-        <div className="dashboard__section-header">
-          <h2>Reserved & Pending</h2>
-        </div>
-        {reservedListings.length === 0 && pendingClaims.length === 0 ? (
-          <EmptyState
-            title="No reserved items"
-            description="Items you've reserved or claims you've submitted will appear here."
-          />
-        ) : (
+      {/* Reserved */}
+      {reservedListings.length > 0 && (
+        <section className="dashboard__section">
+          <div className="dashboard__section-header"><h2>Reserved Items</h2></div>
           <div className="dashboard__list">
             {reservedListings.map((listing) => (
-              <Card key={`reserved-${listing.listing_id}`}>
+              <Card key={listing.listing_id}>
                 <CardBody>
                   <div className="dashboard__listing-row">
-                    <img src={listing.photo_url} alt={listing.name} className="dashboard__listing-thumb" />
+                    {listing.photo_url && <img src={listing.photo_url} alt={listing.name} className="dashboard__listing-thumb" />}
                     <div className="dashboard__listing-info">
                       <div className="dashboard__listing-header">
                         <h3>{listing.name}</h3>
                         <StatusBadge status="reserved" />
                       </div>
-                      <p className="dashboard__listing-meta">Your listing · {listing.quantity} {listing.unit}</p>
+                      <p className="dashboard__listing-meta">{listing.quantity} {listing.unit}</p>
                     </div>
                     <Link to={`/listings/${listing.listing_id}/edit`}><Button variant="outline" size="sm">Manage</Button></Link>
                   </div>
                 </CardBody>
               </Card>
             ))}
-            {pendingClaims.map((claim) => {
-              const listing = getListingById(claim.listing_id);
-              if (!listing) return null;
-              return (
-                <Card key={`claim-${claim.request_id}`}>
-                  <CardBody>
-                    <div className="dashboard__listing-row">
-                      <img src={listing.photo_url} alt={listing.name} className="dashboard__listing-thumb" />
-                      <div className="dashboard__listing-info">
-                        <div className="dashboard__listing-header">
-                          <h3>{listing.name}</h3>
-                          <StatusBadge status={claim.status} />
-                        </div>
-                        <p className="dashboard__listing-meta">
-                          Requested {claim.quantity_requested} {listing.unit} · {new Date(claim.request_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Link to={`/listings/${listing.listing_id}`}><Button variant="outline" size="sm">View</Button></Link>
-                    </div>
-                  </CardBody>
-                </Card>
-              );
-            })}
           </div>
-        )}
-      </section>
-
-      {/* Recent Messages */}
-      <section className="dashboard__section">
-        <div className="dashboard__section-header">
-          <h2>Recent Messages</h2>
-          <Link to="/messages"><Button variant="outline" size="sm">View All</Button></Link>
-        </div>
-        {threads.length === 0 ? (
-          <EmptyState title="No messages yet" description="Conversations will appear here when you message or receive messages." />
-        ) : (
-          <div className="dashboard__list">
-            {threads.map((thread) => {
-              const otherUserId = thread.participant_ids.find((id) => id !== CURRENT_USER_ID) || thread.participant_ids[1];
-              const otherUser = getUserById(otherUserId);
-              const listing = getListingById(thread.listing_id);
-              const lastMsg = thread.messages[thread.messages.length - 1];
-              return (
-                <Link key={thread.thread_id} to={`/messages/${thread.thread_id}`} className="dashboard__message-link">
-                  <Card>
-                    <CardBody>
-                      <div className="dashboard__message-row">
-                        <div className="dashboard__message-info">
-                          <span className="dashboard__message-name">{displayName(otherUser?.name || "Unknown")}</span>
-                          {listing && <span className="dashboard__message-listing">Re: {listing.name}</span>}
-                        </div>
-                        <p className="dashboard__message-preview">
-                          {lastMsg.content.length > 60 ? lastMsg.content.slice(0, 60) + "..." : lastMsg.content}
-                        </p>
-                      </div>
-                    </CardBody>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
