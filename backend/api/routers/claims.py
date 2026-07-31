@@ -61,7 +61,7 @@ def _get_claim(db: Session, claim_id: int) -> ClaimRequest:
 # ---------------------------------------------------------------------------
 
 # lists claims for a listing
-# the listing owner sees every claim on their listing; anyone else only sees their own claim(s)
+# the listing owner sees every claim on their listing, anyone else only sees their own claims
 # returns a list of ClaimResponse objects
 @router.get("/v1/listings/{listing_id}/claims", response_model=list[ClaimResponse])
 def list_claims_for_listing(
@@ -118,7 +118,7 @@ def create_claim(
         .filter(
             ClaimRequest.listing_id == listing_id,
             ClaimRequest.requester_user_id == current_user.user_id,
-            ClaimRequest.status.notin_(STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED),
+            ClaimRequest.status.notin_((STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED)),
         )
         .first()
     )
@@ -146,8 +146,6 @@ def create_claim(
     db.add(thread)
 
     # flush again to get the new thread's ID, then link it back onto the claim
-    # (ClaimRequest.message_thread_id and MessageThread.claim_request_id both exist,
-    # pointing at each other)
     db.flush()
     claim.message_thread_id = thread.thread_id
 
@@ -156,8 +154,8 @@ def create_claim(
     return claim
 
 
-# approves a pending claim; only the listing owner can do this
-# decrements the listing's available quantity, and marks it unavailable once fully claimed
+# approves a pending claim
+# only the listing owner can do this
 # returns a ClaimResponse object with the updated claim's details
 @router.put("/v1/claims/{claim_id}/approve", response_model=ClaimResponse)
 def approve_claim(
@@ -182,7 +180,6 @@ def approve_claim(
         )
 
     # guard against approving a claim for more than what's actually still available
-    # (e.g. multiple active claims outstanding on the same listing)
     if claim.quantity_requested > listing.quantity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -201,7 +198,8 @@ def approve_claim(
     return claim
 
 
-# denies a requested claim; only the listing owner can do this
+# denies a requested claim
+# only the listing owner can do this
 # returns a ClaimResponse object with the updated claim's details
 @router.put("/v1/claims/{claim_id}/decline", response_model=ClaimResponse)
 def decline_claim(
@@ -231,9 +229,8 @@ def decline_claim(
     return claim
 
 
-# cancels a claim that's still REQUESTED or APPROVED; only the user who made the claim can do this
-# cancellation is not allowed once a claim has been picked up
-# if the claim had already been approved (and its quantity reserved), that quantity is given back
+# cancels a claim that's still REQUESTED or APPROVED and gives back the quantity claimed
+# only the user who made the claim can do this
 # returns a ClaimResponse object with the updated claim's details
 @router.put("/v1/claims/{claim_id}/cancel", response_model=ClaimResponse)
 def cancel_claim(
@@ -256,7 +253,7 @@ def cancel_claim(
             detail="Only requested or approved claims can be cancelled; cancellation after pickup is not allowed",
         )
 
-    # an approved claim already reserved quantity on the listing — give it back
+    # an approved claim already reserved quantity on the listing, give it back
     if claim.status == STATUS_APPROVED:
         listing.quantity += claim.quantity_requested
         if listing.status == "unavailable":
@@ -265,6 +262,67 @@ def cancel_claim(
     claim.status = STATUS_CANCELLED
     claim.closed_date = datetime.now(timezone.utc)
 
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+# marks an approved claim as picked up
+# either the requester or the listing owner can do this
+# returns a ClaimResponse object with the updated claim's details
+@router.put("/v1/claims/{claim_id}/pickup", response_model=ClaimResponse)
+def pickup_claim(
+    claim_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    claim = _get_claim(db, claim_id)
+    listing = _get_listing(db, claim.listing_id)
+ 
+    if claim.requester_user_id != current_user.user_id and listing.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only those who have made the claim request or the listing can perform this action",
+        )
+ 
+    if claim.status != STATUS_APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only approved claims can be marked as picked up",
+        )
+ 
+    claim.status = STATUS_PICKED_UP
+ 
+    db.commit()
+    db.refresh(claim)
+    return claim
+
+# marks a picked-up claim as completed
+# either the requester or the listing owner can do this
+# returns a ClaimResponse object with the updated claim's details
+@router.put("/v1/claims/{claim_id}/complete", response_model=ClaimResponse)
+def complete_claim(
+    claim_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    claim = _get_claim(db, claim_id)
+    listing = _get_listing(db, claim.listing_id)
+ 
+    if claim.requester_user_id != current_user.user_id and listing.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only those who have made the claim request or the listing can perform this action",
+        )
+ 
+    if claim.status != STATUS_PICKED_UP:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only picked-up claims can be marked as completed",
+        )
+ 
+    claim.status = STATUS_COMPLETED
+    claim.closed_date = datetime.now(timezone.utc)
+ 
     db.commit()
     db.refresh(claim)
     return claim
