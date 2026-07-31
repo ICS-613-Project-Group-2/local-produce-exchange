@@ -11,7 +11,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
@@ -70,6 +70,8 @@ class Listing(Base):
     date_posted = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     pickup_location = Column(Text, nullable=True)
     category = Column(Text, nullable=True)
+
+    photos = relationship("Photo", secondary="listing_photos", viewonly=True)
 
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="listings_quantity_check"),

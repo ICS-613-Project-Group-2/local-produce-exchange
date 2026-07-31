@@ -43,6 +43,14 @@ class CreateListing(BaseModel):
     pickup_location: str | None = None
     category: str | None = None
     community_id: int | None = None
+    photo_id: int | None = None
+
+
+class PhotoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    photo_id: int
+    image_link: str
 
 
 class ListingResponse(BaseModel):
@@ -73,6 +81,9 @@ class ListingUpdate(BaseModel):
     quantity: int | None = None
     unit: str | None = None
     status: str | None = None
+    category: str | None = None
+    expiration_date: date | None = None
+    pickup_location: str | None = None
 
 
 class CreateClaim(BaseModel):
