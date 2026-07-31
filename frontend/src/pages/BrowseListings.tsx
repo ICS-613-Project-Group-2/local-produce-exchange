@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import SearchBar from "../components/ui/SearchBar";
@@ -6,8 +6,8 @@ import Button from "../components/ui/Button";
 import Card, { CardImage, CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockListings, mockCommunities, getCommunityById } from "../data/mockData";
-import type { Listing } from "../data/types";
+import { browseListings, type ListingResponse } from "../lib/api";
+import type { BadgeStatus } from "../components/ui/StatusBadge";
 import "./BrowseListings.css";
 
 const CATEGORIES = ["All", "Fruits", "Vegetables", "Herbs", "Baked Goods", "Pantry Items"];
@@ -19,53 +19,50 @@ export default function BrowseListings() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [listings, setListings] = useState<ListingResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Only show non-closed, non-completed listings
-  const activeListings = mockListings.filter(
-    (l) => l.status !== "closed" && l.status !== "completed"
-  );
+  useEffect(() => {
+    loadListings();
+  }, [searchQuery, activeCategory]);
 
-  // Filter by search query
-  let filteredListings = searchQuery
-    ? activeListings.filter(
-        (l) =>
-          l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          l.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          l.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : activeListings;
-
-  // Filter by category
-  if (activeCategory !== "All") {
-    filteredListings = filteredListings.filter((l) => l.category === activeCategory);
+  async function loadListings() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await browseListings({
+        search: searchQuery || undefined,
+        category: activeCategory !== "All" ? activeCategory : undefined,
+      });
+      setListings(data.filter((l) => l.status !== "closed" && l.status !== "completed"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load listings");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Sort
-  filteredListings = [...filteredListings].sort((a, b) => {
+  // Sort locally
+  const sortedListings = [...listings].sort((a, b) => {
     if (sortBy === "expiring") {
-      return new Date(a.expiration_date).getTime() - new Date(b.expiration_date).getTime();
+      const aDate = a.expiration_date ? new Date(a.expiration_date).getTime() : Infinity;
+      const bDate = b.expiration_date ? new Date(b.expiration_date).getTime() : Infinity;
+      return aDate - bDate;
     }
     if (sortBy === "quantity") {
       return b.quantity - a.quantity;
     }
-    return new Date(b.date_posted).getTime() - new Date(a.date_posted).getTime();
+    const aPosted = a.date_posted ? new Date(a.date_posted).getTime() : 0;
+    const bPosted = b.date_posted ? new Date(b.date_posted).getTime() : 0;
+    return bPosted - aPosted;
   });
-
-  // Group all filtered listings by community (including expiring)
-  const userCommunities = mockCommunities.filter((c) => !c.is_private || c.community_id <= 3);
-  const listingsByCommunity = userCommunities
-    .map((community) => ({
-      community,
-      listings: filteredListings.filter((l) => l.community_id === community.community_id),
-    }))
-    .filter((group) => group.listings.length > 0);
 
   function handleSearch(query: string) {
     setSearchQuery(query);
   }
 
-  const totalCount = filteredListings.length;
-  const communityCount = new Set(filteredListings.map((l) => l.community_id)).size;
+  const totalCount = sortedListings.length;
 
   return (
     <div className="page-container">
@@ -103,7 +100,7 @@ export default function BrowseListings() {
       {/* Controls Row */}
       <div className="browse__controls">
         <span className="browse__result-count">
-          Showing {totalCount} listing{totalCount !== 1 ? "s" : ""} across {communityCount} communit{communityCount !== 1 ? "ies" : "y"}
+          Showing {totalCount} listing{totalCount !== 1 ? "s" : ""}
         </span>
         <div className="browse__controls-right">
           <select
@@ -134,8 +131,17 @@ export default function BrowseListings() {
         </div>
       </div>
 
-      {/* Empty State */}
-      {filteredListings.length === 0 ? (
+      {/* Content */}
+      {loading ? (
+        <p className="browse__loading">Loading listings...</p>
+      ) : error ? (
+        <EmptyState
+          icon={<span>⚠️</span>}
+          title="Something went wrong"
+          description={error}
+          action={<Button variant="primary" onClick={loadListings}>Try Again</Button>}
+        />
+      ) : sortedListings.length === 0 ? (
         <EmptyState
           icon={<span>🧺</span>}
           title="No listings found"
@@ -147,54 +153,43 @@ export default function BrowseListings() {
           }
         />
       ) : (
-        <>
-          {/* Community Sections */}
-          <div className="browse__communities">
-            {listingsByCommunity.map(({ community, listings }) => (
-              <section key={community.community_id} className="browse__community-section">
-                <div className="browse__community-header">
-                  <h2 className="browse__community-name">{community.name}</h2>
-                  <StatusBadge status={community.is_private ? "private" : "public"} />
-                  <span className="browse__community-count">{listings.length} listing{listings.length !== 1 ? "s" : ""}</span>
-                </div>
-                <div className={viewMode === "grid" ? "browse__grid" : "browse__list"}>
-                  {listings.map((listing) => (
-                    <ListingCard key={listing.listing_id} listing={listing} viewMode={viewMode} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        </>
+        <div className={viewMode === "grid" ? "browse__grid" : "browse__list"}>
+          {sortedListings.map((listing) => (
+            <ListingCard key={listing.listing_id} listing={listing} viewMode={viewMode} />
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function ListingCard({ listing, viewMode }: { listing: Listing; viewMode: ViewMode }) {
-  const community = getCommunityById(listing.community_id);
-  const daysLeft = Math.ceil((new Date(listing.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+function ListingCard({ listing, viewMode }: { listing: ListingResponse; viewMode: ViewMode }) {
+  const daysLeft = listing.expiration_date
+    ? Math.ceil((new Date(listing.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   if (viewMode === "list") {
     return (
       <Link to={`/listings/${listing.listing_id}`} className="browse__list-item">
-        <img src={listing.photo_url} alt={listing.name} className="browse__list-thumb" />
+        {listing.photo_url && (
+          <img src={listing.photo_url} alt={listing.name} className="browse__list-thumb" />
+        )}
         <div className="browse__list-info">
           <div className="browse__list-header">
             <h3>{listing.name}</h3>
-            <StatusBadge status={listing.status} />
+            {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
           </div>
           <p className="browse__list-meta">
-            {listing.quantity} {listing.unit} · {listing.category} · 📍 {listing.pickup_location}
+            {listing.quantity} {listing.unit} · {listing.category}
+            {listing.pickup_location && ` · 📍 ${listing.pickup_location}`}
           </p>
-          {community && <span className="browse__list-community">🏘️ {community.name}</span>}
         </div>
         <div className="browse__list-expiry">
-          {daysLeft <= 2 && daysLeft >= 0 ? (
+          {daysLeft !== null && daysLeft <= 2 && daysLeft >= 0 ? (
             <span className="browse__list-expiry--urgent">Expires in {daysLeft}d</span>
-          ) : (
+          ) : listing.expiration_date ? (
             <span>{new Date(listing.expiration_date).toLocaleDateString()}</span>
-          )}
+          ) : null}
         </div>
       </Link>
     );
@@ -202,20 +197,25 @@ function ListingCard({ listing, viewMode }: { listing: Listing; viewMode: ViewMo
 
   return (
     <Card className="browse__card">
-      <CardImage src={listing.photo_url} alt={listing.name} />
+      {listing.photo_url && <CardImage src={listing.photo_url} alt={listing.name} />}
       <CardBody>
         <div className="browse__card-header">
           <h3>{listing.name}</h3>
-          <StatusBadge status={listing.status} />
+          {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
         </div>
         <p className="browse__card-meta">
           {listing.quantity} {listing.unit} · {listing.category}
         </p>
-        <p className="browse__card-expiry">
-          {daysLeft <= 2 && daysLeft >= 0 ? `⚠️ Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}` : `Expires ${new Date(listing.expiration_date).toLocaleDateString()}`}
-        </p>
-        <p className="browse__card-location">📍 {listing.pickup_location}</p>
-        {community && <p className="browse__card-community">🏘️ {community.name}</p>}
+        {daysLeft !== null && (
+          <p className="browse__card-expiry">
+            {daysLeft <= 2 && daysLeft >= 0
+              ? `⚠️ Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`
+              : `Expires ${new Date(listing.expiration_date!).toLocaleDateString()}`}
+          </p>
+        )}
+        {listing.pickup_location && (
+          <p className="browse__card-location">📍 {listing.pickup_location}</p>
+        )}
       </CardBody>
       <CardFooter>
         <Link to={`/listings/${listing.listing_id}`}>
