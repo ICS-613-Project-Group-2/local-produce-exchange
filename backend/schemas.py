@@ -1,6 +1,18 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import date, datetime
 
+from typing import Literal
+
+DietaryRestriction = Literal[
+    "vegan", "vegetarian", "gluten_free",
+    "nut_free", "halal", "kosher", "other"
+]
+
+Category = Literal[
+    "fruits", "vegetables", "dairy", "grains",
+    "meat", "seafood", "baked_goods", "other"
+]
+
 class RegisterUser(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -41,7 +53,8 @@ class CreateListing(BaseModel):
     unit: str | None = None
     expiration_date: date | None = None
     pickup_location: str | None = None
-    category: str | None = None
+    category: Category | None = None
+    dietary_restrictions: list[DietaryRestriction] = []
     community_id: int | None = None
     photo_id: int | None = None
 
@@ -68,6 +81,7 @@ class ListingResponse(BaseModel):
     date_posted: datetime | None
     pickup_location: str | None
     category: str | None
+    dietary_restrictions: list[str] = []
     photo_url: str | None = None
 
 class ListingUpdate(BaseModel):
@@ -81,7 +95,8 @@ class ListingUpdate(BaseModel):
     quantity: int | None = None
     unit: str | None = None
     status: str | None = None
-    category: str | None = None
+    category: Category | None = None
+    dietary_restrictions: list[DietaryRestriction] | None = None
     expiration_date: date | None = None
     pickup_location: str | None = None
 

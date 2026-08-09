@@ -11,6 +11,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -69,12 +70,23 @@ class Listing(Base):
     expiration_date = Column(Date, nullable=True)
     date_posted = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     pickup_location = Column(Text, nullable=True)
-    category = Column(Text, nullable=True)
+    category = Column(String(50), nullable=True)
+    dietary_restrictions = Column(ARRAY(String), server_default=text("'{}'"))
 
     photos = relationship("Photo", secondary="listing_photos", viewonly=True)
 
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="listings_quantity_check"),
+        CheckConstraint(
+            "category IN ('fruits', 'vegetables', 'dairy', 'grains', 'meat', 'seafood', 'baked_goods', 'other')",
+            name="listings_category_check",
+        ),
+        CheckConstraint(
+            "dietary_restrictions <@ ARRAY["
+            "'vegan', 'vegetarian', 'gluten_free', 'nut_free', 'halal', 'kosher', 'other'"
+            "]::varchar[]",
+            name="listings_dietary_restrictions_check",
+        ),
     )
 
 

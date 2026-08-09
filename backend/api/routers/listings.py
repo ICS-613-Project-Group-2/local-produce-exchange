@@ -86,6 +86,7 @@ def create_listing(
         expiration_date=listing_form.expiration_date,
         pickup_location=listing_form.pickup_location,
         category=listing_form.category,
+        dietary_restrictions=listing_form.dietary_restrictions,
     )
     db.add(new_listing)
 
@@ -105,7 +106,7 @@ def create_listing(
     return _serialize_listing(new_listing)
 
 
-# lists listings with optional filtering by community, category, status, and search term
+# lists listings with optional filtering by community, category, status, dietary restrictions, and search term
 # returns a list of ListingResponse objects matching the filters, ordered by most recently posted
 @router.get("", response_model=list[ListingResponse])
 def list_listings(
@@ -113,6 +114,7 @@ def list_listings(
     community_id: int | None = None,
     category: str | None = None,
     status_filter: str | None = None,
+    dietary_restriction: str | None = None,
     search: str | None = None,
 ):
     query = db.query(Listing)
@@ -129,6 +131,11 @@ def list_listings(
     # filters the query down by status, if provided
     if status_filter is not None:
         query = query.filter(Listing.status == status_filter)
+
+    # filters the query down to listings whose dietary_restrictions array contains this value, if provided
+    # (e.g. ?dietary_restriction=vegan surfaces every listing tagged vegan, regardless of what else it's tagged with)
+    if dietary_restriction is not None:
+        query = query.filter(Listing.dietary_restrictions.any(dietary_restriction))
 
     # filters the query down to listings whose name or description contain the search term, if provided
     if search is not None:
@@ -172,6 +179,9 @@ def update_listing(
         )
 
     # updates the listing's details with the new values from the request body
+    # exclude_unset means a field the client left out of the request body entirely is skipped
+    # (rather than treated as an explicit "set this to None"); this applies to dietary_restrictions
+    # too, so sending an empty list is a deliberate "clear all restrictions", not the same as omitting it
     updates = listing_form.model_dump(exclude_unset=True)
 
     for field, value in updates.items():
