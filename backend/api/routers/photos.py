@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, Depends, UploadFile, HTTPException, status
 from sqlalchemy.orm import Session
+import uuid
+import httpx
 
 from database import get_db
 from models import Photo, User
 from schemas import PhotoResponse
 from api.deps import get_current_user
-import uuid
-import httpx
-from fastapi import HTTPException, status
-
 from config import settings
 
 # image types accepted for upload, and the maximum allowed file size
@@ -64,7 +62,7 @@ def _upload_photo(content: bytes, content_type: str, original_filename: str) -> 
             detail="Failed to upload image to storage",
         )
 
-    # returns the public URL for the uploaded objec
+    # returns the public URL for the uploaded object
     return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/{object_path}"
 
 
