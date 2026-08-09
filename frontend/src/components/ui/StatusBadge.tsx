@@ -4,6 +4,7 @@ export type BadgeStatus =
   | "available"
   | "reserved"
   | "expiring-soon"
+  | "expired"
   | "picked-up"
   | "closed"
   | "pending"
@@ -25,6 +26,7 @@ const defaultLabels: Record<BadgeStatus, string> = {
   available: "Available",
   reserved: "Reserved",
   "expiring-soon": "Expiring Soon",
+  expired: "Expired",
   "picked-up": "Picked Up",
   closed: "Closed",
   pending: "Pending",

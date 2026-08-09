@@ -47,6 +47,7 @@ export default function DesignSystem() {
           <StatusBadge status="available" />
           <StatusBadge status="reserved" />
           <StatusBadge status="expiring-soon" />
+          <StatusBadge status="expired" />
           <StatusBadge status="closed" />
           <StatusBadge status="pending" />
           <StatusBadge status="completed" />

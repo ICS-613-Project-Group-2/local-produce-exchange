@@ -1,3 +1,10 @@
+.community-detail__status-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
 /* Banner */
 .community-detail__banner {
   width: 100%;
@@ -198,11 +205,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.community-detail__member-location {
-  font-size: var(--font-size-helper);
-  color: var(--color-text-muted);
-}
-
 /* Locked view */
 .community-detail__locked {
   text-align: center;
@@ -215,16 +217,6 @@
 
 .community-detail__locked h1 {
   font-size: var(--font-size-page-title);
-}
-
-.community-detail__locked-desc {
-  color: var(--color-text-muted);
-  max-width: 500px;
-}
-
-.community-detail__locked-members {
-  font-size: var(--font-size-label);
-  color: var(--color-text-muted);
 }
 
 .community-detail__locked-notice {

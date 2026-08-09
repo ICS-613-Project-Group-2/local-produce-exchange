@@ -27,6 +27,12 @@
   color: var(--color-accent-dark);
 }
 
+/* Expired */
+.badge--expired {
+  background-color: #fee2e2;
+  color: var(--color-error);
+}
+
 /* Closed */
 .badge--closed {
   background-color: #f3f4f6;

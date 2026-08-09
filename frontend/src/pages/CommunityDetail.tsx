@@ -1,39 +1,103 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardImage, CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import FormField, { Textarea } from "../components/ui/FormField";
 import { NO_PHOTO_URL } from "../lib/placeholder";
 import {
-  getCommunityById,
-  getListingsByCommunity,
-  getPostsByCommunity,
-  getMembersByCommunity,
-  getUserRole,
-  getUserById,
-} from "../data/mockData";
+  getCommunity,
+  listListings,
+  listCommunityMembers,
+  ApiError,
+  type CommunityResponse,
+  type ListingResponse,
+  type CommunityMemberResponse,
+} from "../lib/api";
 import { displayName } from "../data/utils";
 import "./CommunityDetail.css";
 
-// Simulate logged-in user as Lily Chen (user_id 1)
-const CURRENT_USER_ID = 1;
+type Tab = "listings" | "members";
 
-type Tab = "listings" | "posts" | "members";
+const MODERATOR_ROLES = ["owner", "moderator", "admin"];
+
+// displays "expired" for available listings past their expiration date, "expiring-soon" for
+// those expiring within 2 days, otherwise the raw status
+function displayStatus(listing: ListingResponse): BadgeStatus {
+  if (listing.status === "available" && listing.expiration_date) {
+    const daysLeft = Math.ceil(
+      (new Date(listing.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysLeft <= 0) return "expired";
+    if (daysLeft <= 2) return "expiring-soon";
+  }
+  return (listing.status as BadgeStatus) || "available";
+}
+
+function roleLabel(role: string | null): string {
+  if (role === "owner") return "Owner";
+  if (role === "moderator" || role === "admin") return "Moderator";
+  return "Member";
+}
 
 export default function CommunityDetail() {
   const { id } = useParams<{ id: string }>();
-  const community = getCommunityById(Number(id));
+  const communityId = Number(id);
+
+  const [community, setCommunity] = useState<CommunityResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isPrivateLocked, setIsPrivateLocked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("listings");
 
-  if (!community) {
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setIsPrivateLocked(false);
+    getCommunity(communityId)
+      .then(setCommunity)
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 403) {
+          setIsPrivateLocked(true);
+        } else {
+          setError(err instanceof ApiError ? err.message : "Failed to load this community.");
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [communityId]);
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <p className="community-detail__status-message">Loading community...</p>
+      </div>
+    );
+  }
+
+  if (isPrivateLocked) {
+    return (
+      <div className="page-container">
+        <div className="community-detail__locked">
+          <h1>Private Community</h1>
+          <StatusBadge status="private" />
+          <p className="community-detail__locked-notice">
+            This is a private community. You need an invitation to view its content.
+          </p>
+          <Link to="/communities">
+            <Button variant="outline">Back to Communities</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !community) {
     return (
       <div className="page-container">
         <EmptyState
           icon={<span>🏘️</span>}
           title="Community not found"
-          description="This community may have been removed or does not exist."
+          description={error || "This community may have been removed or does not exist."}
           action={
             <Link to="/communities">
               <Button variant="primary">Back to Communities</Button>
@@ -44,33 +108,7 @@ export default function CommunityDetail() {
     );
   }
 
-  const userRole = getUserRole(CURRENT_USER_ID, community.community_id);
-  const isMember = userRole !== null;
-  const isAdmin = userRole === "admin";
-  const members = getMembersByCommunity(community.community_id);
-
-  // Private community, not a member — show locked view
-  if (community.is_private && !isMember) {
-    return (
-      <div className="page-container">
-        <div className="community-detail__locked">
-          {community.banner_url && (
-            <div className="community-detail__banner">
-              <img src={community.banner_url} alt={community.name} />
-            </div>
-          )}
-          <h1>{community.name}</h1>
-          <StatusBadge status="private" />
-          <p className="community-detail__locked-desc">{community.description}</p>
-          <p className="community-detail__locked-members">👥 {community.member_count} members</p>
-          <p className="community-detail__locked-notice">
-            This is a private community. You need an invitation or admin approval to view its content.
-          </p>
-          <Button variant="secondary">Request to Join</Button>
-        </div>
-      </div>
-    );
-  }
+  const isAdmin = community.my_role !== null && MODERATOR_ROLES.includes(community.my_role);
 
   return (
     <div className="page-container">
@@ -88,7 +126,7 @@ export default function CommunityDetail() {
           <StatusBadge status={community.is_private ? "private" : "public"} />
         </div>
         <p className="community-detail__description">{community.description}</p>
-        <p className="community-detail__meta">👥 {members.length} members</p>
+        <p className="community-detail__meta">👥 {community.member_count} members</p>
         <div className="community-detail__actions">
           {isAdmin && (
             <Link to={`/communities/${community.community_id}/admin`}>
@@ -110,12 +148,6 @@ export default function CommunityDetail() {
           Listings
         </button>
         <button
-          className={`community-detail__tab ${activeTab === "posts" ? "community-detail__tab--active" : ""}`}
-          onClick={() => setActiveTab("posts")}
-        >
-          Posts
-        </button>
-        <button
           className={`community-detail__tab ${activeTab === "members" ? "community-detail__tab--active" : ""}`}
           onClick={() => setActiveTab("members")}
         >
@@ -125,16 +157,34 @@ export default function CommunityDetail() {
 
       {/* Tab content */}
       {activeTab === "listings" && <ListingsTab communityId={community.community_id} />}
-      {activeTab === "posts" && <PostsTab communityId={community.community_id} />}
       {activeTab === "members" && <MembersTab communityId={community.community_id} />}
     </div>
   );
 }
 
 function ListingsTab({ communityId }: { communityId: number }) {
-  const listings = getListingsByCommunity(communityId).filter(
-    (l) => l.status !== "closed" && l.status !== "completed"
-  );
+  const [listings, setListings] = useState<ListingResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listListings({ community_id: communityId })
+      .then((result) =>
+        setListings(result.filter((l) => l.status !== "closed" && l.status !== "completed"))
+      )
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Failed to load listings.");
+      })
+      .finally(() => setLoading(false));
+  }, [communityId]);
+
+  if (loading) {
+    return <p className="community-detail__status-message">Loading listings...</p>;
+  }
+
+  if (error) {
+    return <p className="community-detail__status-message">{error}</p>;
+  }
 
   if (listings.length === 0) {
     return (
@@ -159,14 +209,16 @@ function ListingsTab({ communityId }: { communityId: number }) {
           <CardBody>
             <div className="community-detail__card-header">
               <h3>{listing.name}</h3>
-              <StatusBadge status={(listing.status as BadgeStatus) || "available"} />
+              <StatusBadge status={displayStatus(listing)} />
             </div>
             <p className="community-detail__card-meta">
               {listing.quantity} {listing.unit} · {listing.category}
             </p>
-            <p className="community-detail__card-meta">
-              📍 {listing.pickup_location}
-            </p>
+            {listing.pickup_location && (
+              <p className="community-detail__card-meta">
+                📍 {listing.pickup_location}
+              </p>
+            )}
           </CardBody>
           <CardFooter>
             <Link to={`/listings/${listing.listing_id}`}>
@@ -179,115 +231,52 @@ function ListingsTab({ communityId }: { communityId: number }) {
   );
 }
 
-function PostsTab({ communityId }: { communityId: number }) {
-  const posts = getPostsByCommunity(communityId);
-  const [newPost, setNewPost] = useState("");
-  const [localPosts, setLocalPosts] = useState(posts);
+function MembersTab({ communityId }: { communityId: number }) {
+  const [members, setMembers] = useState<CommunityMemberResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  function handlePost(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newPost.trim()) return;
-    const post = {
-      post_id: localPosts.length + 100,
-      community_id: communityId,
-      user_id: 1,
-      content: newPost.trim(),
-      timestamp: new Date().toISOString(),
-    };
-    setLocalPosts([post, ...localPosts]);
-    setNewPost("");
+  useEffect(() => {
+    listCommunityMembers(communityId)
+      .then(setMembers)
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Failed to load members.");
+      })
+      .finally(() => setLoading(false));
+  }, [communityId]);
+
+  if (loading) {
+    return <p className="community-detail__status-message">Loading members...</p>;
+  }
+
+  if (error) {
+    return <p className="community-detail__status-message">{error}</p>;
+  }
+
+  if (members.length === 0) {
+    return <EmptyState icon={<span>👥</span>} title="No members yet" />;
   }
 
   return (
-    <div className="community-detail__posts">
-      {/* Post input */}
-      <Card>
-        <CardBody>
-          <form onSubmit={handlePost} className="community-detail__post-form">
-            <FormField label="Share an update" htmlFor="new-post">
-              <Textarea
-                id="new-post"
-                placeholder="Share news, ask a question, or post an announcement..."
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-              />
-            </FormField>
-            <Button variant="primary" size="sm" type="submit" disabled={!newPost.trim()}>
-              Post
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
-
-      {/* Posts list */}
-      {localPosts.length === 0 ? (
-        <EmptyState
-          title="No community posts yet"
-          description="Start the conversation by sharing an update above."
-        />
-      ) : (
-        <div className="community-detail__posts-list">
-          {localPosts.map((post) => {
-            const author = getUserById(post.user_id);
-            return (
-              <Card key={post.post_id}>
-                <CardBody>
-                  <div className="community-detail__post">
-                    <div className="community-detail__post-header">
-                      {author?.profile_photo_url ? (
-                        <img src={author.profile_photo_url} alt={author.name} className="community-detail__post-avatar" />
-                      ) : (
-                        <div className="community-detail__post-avatar community-detail__post-avatar--placeholder">
-                          {author?.name[0] || "?"}
-                        </div>
-                      )}
-                      <div>
-                        <span className="community-detail__post-name">{displayName(author?.name || "Unknown")}</span>
-                        <span className="community-detail__post-time">
-                          {new Date(post.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="community-detail__post-content">{post.content}</p>
-                  </div>
-                </CardBody>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MembersTab({ communityId }: { communityId: number }) {
-  const members = getMembersByCommunity(communityId);
-
-  return (
     <div className="community-detail__members">
-      {members.map((membership) => {
-        const user = getUserById(membership.user_id);
-        if (!user) return null;
-        return (
-          <div key={membership.user_id} className="community-detail__member">
-            {user.profile_photo_url ? (
-              <img src={user.profile_photo_url} alt={user.name} className="community-detail__member-avatar" />
-            ) : (
-              <div className="community-detail__member-avatar community-detail__member-avatar--placeholder">
-                {user.name[0]}
-              </div>
-            )}
-            <div className="community-detail__member-info">
-              <span className="community-detail__member-name">{displayName(user.name)}</span>
-              {user.location && <span className="community-detail__member-location">📍 {user.location}</span>}
+      {members.map((member) => (
+        <div key={member.user_id} className="community-detail__member">
+          {member.profile_photo_url ? (
+            <img src={member.profile_photo_url} alt={member.name} className="community-detail__member-avatar" />
+          ) : (
+            <div className="community-detail__member-avatar community-detail__member-avatar--placeholder">
+              {member.name[0]}
             </div>
-            <StatusBadge
-              status={membership.role === "admin" ? "approved" : "available"}
-              label={membership.role === "admin" ? "Admin" : "Member"}
-            />
+          )}
+          <div className="community-detail__member-info">
+            <span className="community-detail__member-name">{displayName(member.name)}</span>
           </div>
-        );
-      })}
+          <StatusBadge
+            status={MODERATOR_ROLES.includes(member.role || "") ? "approved" : "available"}
+            label={roleLabel(member.role)}
+          />
+        </div>
+      ))}
     </div>
   );
 }

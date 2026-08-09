@@ -16,12 +16,14 @@ import {
 import { NO_PHOTO_URL } from "../lib/placeholder";
 import "./BrowseListings.css";
 
-// displays "expiring-soon" for available listings expiring within 2 days, otherwise the raw status
+// displays "expired" for available listings past their expiration date, "expiring-soon" for
+// those expiring within 2 days, otherwise the raw status
 function displayStatus(listing: ListingResponse): BadgeStatus {
   if (listing.status === "available" && listing.expiration_date) {
     const daysLeft = Math.ceil(
       (new Date(listing.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     );
+    if (daysLeft <= 0) return "expired";
     if (daysLeft <= 2) return "expiring-soon";
   }
   return (listing.status as BadgeStatus) || "available";
