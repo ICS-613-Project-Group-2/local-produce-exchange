@@ -1,0 +1,136 @@
+/* Admin Tabs */
+.admin__tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.admin__tab {
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.admin__tab:hover {
+  color: var(--color-text);
+}
+
+.admin__tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Section */
+.admin__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.admin__success {
+  background-color: var(--color-primary-softer);
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+}
+
+/* Members list */
+.admin__members-list,
+.admin__requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin__member-row,
+.admin__request-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.admin__member-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.admin__member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin__member-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.admin__member-name {
+  font-weight: var(--font-weight-semibold);
+  display: block;
+}
+
+.admin__member-date {
+  font-size: var(--font-size-helper);
+  color: var(--color-text-muted);
+  display: block;
+}
+
+.admin__member-actions,
+.admin__request-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.admin__role-select {
+  max-width: 120px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-label);
+}
+
+/* Invitations */
+.admin__invite-desc {
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.admin__invite-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.admin__invite-form .form-field {
+  flex: 1;
+  max-width: 300px;
+}
+
+/* Settings */
+.admin__settings-note {
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}

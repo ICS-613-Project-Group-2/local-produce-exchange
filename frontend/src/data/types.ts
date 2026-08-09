@@ -67,3 +67,26 @@ export interface Notification {
   is_read: boolean;
   type: "message" | "claim" | "community" | "listing";
 }
+
+export interface CommunityPost {
+  post_id: number;
+  community_id: number;
+  user_id: number;
+  content: string;
+  timestamp: string;
+}
+
+export interface Membership {
+  user_id: number;
+  community_id: number;
+  role: "member" | "admin";
+  date_joined: string;
+}
+
+export interface JoinRequest {
+  request_id: number;
+  community_id: number;
+  user_id: number;
+  status: "pending" | "approved" | "rejected";
+  request_date: string;
+}
