@@ -35,6 +35,10 @@
   gap: var(--space-3);
 }
 
+.listing-details__edit-link {
+  margin-left: auto;
+}
+
 .listing-details__header h1 {
   font-size: var(--font-size-page-title);
 }

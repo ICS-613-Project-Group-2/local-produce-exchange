@@ -5,11 +5,13 @@ import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
 import FormField, { Input } from "../components/ui/FormField";
 import { getListing, getCommunity, createClaim, ApiError, type ListingResponse, type CommunityResponse } from "../lib/api";
 import { NO_PHOTO_URL } from "../lib/placeholder";
+import { useAuth } from "../context/AuthContext";
 import "./ListingDetails.css";
 
 export default function ListingDetails() {
   const { id } = useParams<{ id: string }>();
   const listingId = Number(id);
+  const { user } = useAuth();
 
   const [listing, setListing] = useState<ListingResponse | null>(null);
   const [community, setCommunity] = useState<CommunityResponse | null>(null);
@@ -101,6 +103,13 @@ export default function ListingDetails() {
           <div className="listing-details__header">
             <h1>{listing.name}</h1>
             <StatusBadge status={(listing.status as BadgeStatus) || "available"} />
+            {user && listing.user_id === user.user_id && (
+              <Link to={`/listings/${listingId}/edit`} className="listing-details__edit-link">
+                <Button variant="outline" size="sm">
+                  Edit Listing
+                </Button>
+              </Link>
+            )}
           </div>
 
           <div className="listing-details__meta">
