@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from api.deps import get_current_user
-from models import ClaimRequest, Listing, MessageThread, Review, User
+from models import ClaimRequest, Listing, MessageThread, Notification, Review, User
 from schemas import CreateClaim, ClaimResponse, ClaimHistoryResponse
+from api.routers.notifications import create_notification
 
 router = APIRouter()
 
@@ -219,6 +220,15 @@ def create_claim(
     db.flush()
     claim.message_thread_id = thread.thread_id
 
+    # notify the listing owner about the new claim
+    create_notification(
+        db,
+        user_id=listing.user_id,
+        content=f"{current_user.name} requested {claim.quantity_requested} of your listing \"{listing.name}\"",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
+
     db.commit()
     db.refresh(claim)
     return claim
@@ -263,6 +273,15 @@ def approve_claim(
 
     claim.status = STATUS_APPROVED
 
+    # notify the requester that their claim was approved
+    create_notification(
+        db,
+        user_id=claim.requester_user_id,
+        content=f"Your claim on \"{listing.name}\" has been approved!",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
+
     db.commit()
     db.refresh(claim)
     return claim
@@ -293,6 +312,15 @@ def decline_claim(
 
     claim.status = STATUS_DENIED
     claim.closed_date = datetime.now(timezone.utc)
+
+    # notify the requester that their claim was declined
+    create_notification(
+        db,
+        user_id=claim.requester_user_id,
+        content=f"Your claim on \"{listing.name}\" has been declined.",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
 
     db.commit()
     db.refresh(claim)
@@ -332,6 +360,16 @@ def cancel_claim(
     claim.status = STATUS_CANCELLED
     claim.closed_date = datetime.now(timezone.utc)
 
+    # notify the other party about the cancellation
+    other_user_id = listing.user_id if current_user.user_id == claim.requester_user_id else claim.requester_user_id
+    create_notification(
+        db,
+        user_id=other_user_id,
+        content=f"A claim on \"{listing.name}\" has been cancelled.",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
+
     db.commit()
     db.refresh(claim)
     return claim
@@ -362,6 +400,16 @@ def pickup_claim(
         )
 
     claim.status = STATUS_PICKED_UP
+
+    # notify the other party about the pickup
+    other_user_id = listing.user_id if current_user.user_id == claim.requester_user_id else claim.requester_user_id
+    create_notification(
+        db,
+        user_id=other_user_id,
+        content=f"The claim on \"{listing.name}\" has been marked as picked up.",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
 
     db.commit()
     db.refresh(claim)
@@ -394,6 +442,16 @@ def complete_claim(
 
     claim.status = STATUS_COMPLETED
     claim.closed_date = datetime.now(timezone.utc)
+
+    # notify the other party that the exchange is complete
+    other_user_id = listing.user_id if current_user.user_id == claim.requester_user_id else claim.requester_user_id
+    create_notification(
+        db,
+        user_id=other_user_id,
+        content=f"Your exchange for \"{listing.name}\" is complete! You can now leave a review.",
+        type="exchange",
+        claim_request_id=claim.request_id,
+    )
 
     db.commit()
     db.refresh(claim)

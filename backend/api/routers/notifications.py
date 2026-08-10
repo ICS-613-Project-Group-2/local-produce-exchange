@@ -13,6 +13,27 @@ router = APIRouter()
 # ----------------------------- HELPER METHODS ------------------------------
 # ---------------------------------------------------------------------------
 
+# creates a notification for a user; called by other routers when events happen
+# (new claim, claim status change, new message, new review, etc.)
+def create_notification(
+    db: Session,
+    user_id: int,
+    content: str,
+    type: str | None = None,
+    message_id: int | None = None,
+    claim_request_id: int | None = None,
+) -> Notification:
+    notification = Notification(
+        user_id=user_id,
+        content=content,
+        type=type,
+        message_id=message_id,
+        claim_request_id=claim_request_id,
+    )
+    db.add(notification)
+    return notification
+
+
 # retrieves a notification by ID from the database
 # returns a Notification object if found; raises a 404 error if not
 def _get_notification(db: Session, notification_id: int) -> Notification:
