@@ -326,3 +326,32 @@ def complete_claim(
     db.commit()
     db.refresh(claim)
     return claim
+
+
+# lists all claims related to the current user (either as requester or listing owner)
+# returns a list of ClaimResponse objects sorted by most recent first
+@router.get("/v1/me/claims", response_model=list[ClaimResponse])
+def list_my_claims(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import or_
+
+    # claims where the user is the requester
+    requester_filter = ClaimRequest.requester_user_id == current_user.user_id
+
+    # claims on listings the user owns
+    owned_listing_ids = (
+        db.query(Listing.listing_id)
+        .filter(Listing.user_id == current_user.user_id)
+        .subquery()
+    )
+    owner_filter = ClaimRequest.listing_id.in_(owned_listing_ids)
+
+    claims = (
+        db.query(ClaimRequest)
+        .filter(or_(requester_filter, owner_filter))
+        .order_by(ClaimRequest.request_date.desc())
+        .all()
+    )
+    return claims

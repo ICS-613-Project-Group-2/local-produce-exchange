@@ -25,6 +25,14 @@ class GetUser(BaseModel):
     location: str | None = None
     rating: float | None = None
 
+
+class UpdateUser(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    location: str | None = None
+    profile_photo_id: int | None = None
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -9,6 +9,8 @@ import { useAuth } from "../context/AuthContext";
 import {
   browseListings,
   listCommunities,
+  updateProfile,
+  uploadPhoto,
   type ListingResponse,
   type CommunityResponse,
 } from "../lib/api";
@@ -140,12 +142,15 @@ function ProfileSettings() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     setSaved(false);
+    setSaveError(null);
   }
 
   function validate(): Record<string, string> {
@@ -159,7 +164,7 @@ function ProfileSettings() {
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -167,13 +172,39 @@ function ProfileSettings() {
       return;
     }
     setErrors({});
-    setSaved(true);
-    // TODO: Call updateProfile API once endpoint exists
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      await updateProfile({
+        name: formData.name,
+        location: formData.location || undefined,
+      });
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const photo = await uploadPhoto(file);
+      await updateProfile({ profile_photo_id: photo.photo_id });
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to upload photo");
+    }
   }
 
   return (
     <div className="profile__content">
       {saved && <div className="profile__save-success">✅ Profile updated successfully.</div>}
+      {saveError && <div className="profile__save-error">❌ {saveError}</div>}
 
       <Card>
         <CardBody>
@@ -187,7 +218,16 @@ function ProfileSettings() {
                   <div className="profile__avatar profile__avatar--placeholder">{user?.name?.[0] || "?"}</div>
                 )}
                 <div className="profile__photo-actions">
-                  <Button variant="outline" size="sm">Upload New Photo</Button>
+                  <label htmlFor="photo-upload" className="btn btn--outline btn--sm" style={{ cursor: "pointer" }}>
+                    Upload New Photo
+                  </label>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoUpload}
+                    style={{ display: "none" }}
+                  />
                   <p className="profile__photo-hint">JPG, PNG, or WebP. Max 5MB.</p>
                 </div>
               </div>
@@ -210,7 +250,9 @@ function ProfileSettings() {
             </section>
 
             <div className="profile__form-actions">
-              <Button variant="primary" type="submit" size="lg">Save Changes</Button>
+              <Button variant="primary" type="submit" size="lg" disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </form>
         </CardBody>

@@ -410,3 +410,162 @@ export function sendMessage(claimId: number, content: string): Promise<MessageRe
     body: JSON.stringify({ content }),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Inbox (list all message threads for the current user)
+// ---------------------------------------------------------------------------
+
+export function getMyThreads(): Promise<MessageThreadResponse[]> {
+  return apiFetch<MessageThreadResponse[]>("/v1/me/threads");
+}
+
+// ---------------------------------------------------------------------------
+// Profile
+// ---------------------------------------------------------------------------
+
+export interface UpdateProfilePayload {
+  name?: string;
+  location?: string;
+  profile_photo_id?: number | null;
+}
+
+export function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  return apiFetch<User>("/v1/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export interface NotificationResponse {
+  notification_id: number;
+  user_id: number | null;
+  message_id: number | null;
+  claim_request_id: number | null;
+  content: string;
+  timestamp: string | null;
+  is_read: boolean;
+  type: string | null;
+}
+
+export function getMyNotifications(): Promise<NotificationResponse[]> {
+  return apiFetch<NotificationResponse[]>("/v1/me/notifications");
+}
+
+export function markNotificationRead(notificationId: number): Promise<NotificationResponse> {
+  return apiFetch<NotificationResponse>(`/v1/notifications/${notificationId}/read`, {
+    method: "PUT",
+  });
+}
+
+export function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>("/v1/me/notifications/read-all", {
+    method: "PUT",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Community Members
+// ---------------------------------------------------------------------------
+
+export function getCommunityMembers(communityId: number): Promise<MembershipResponse[]> {
+  return apiFetch<MembershipResponse[]>(`/v1/communities/${communityId}/members`);
+}
+
+export function removeCommunityMember(communityId: number, userId: number): Promise<void> {
+  return apiFetch<void>(`/v1/communities/${communityId}/members/${userId}`, {
+    method: "DELETE",
+  });
+}
+
+export function updateMemberRole(
+  communityId: number,
+  userId: number,
+  role: string
+): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(
+    `/v1/communities/${communityId}/members/${userId}/role?role=${encodeURIComponent(role)}`,
+    { method: "PUT" }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Community Posts
+// ---------------------------------------------------------------------------
+
+export interface CommunityPostResponse {
+  post_id: number;
+  community_id: number;
+  user_id: number;
+  content: string;
+  timestamp: string | null;
+}
+
+export function getCommunityPosts(communityId: number): Promise<CommunityPostResponse[]> {
+  return apiFetch<CommunityPostResponse[]>(`/v1/communities/${communityId}/posts`);
+}
+
+export function createCommunityPost(
+  communityId: number,
+  content: string
+): Promise<CommunityPostResponse> {
+  return apiFetch<CommunityPostResponse>(`/v1/communities/${communityId}/posts`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Join Requests
+// ---------------------------------------------------------------------------
+
+export interface JoinRequestResponse {
+  request_id: number;
+  community_id: number;
+  user_id: number;
+  status: string | null;
+  request_date: string | null;
+}
+
+export function getJoinRequests(communityId: number): Promise<JoinRequestResponse[]> {
+  return apiFetch<JoinRequestResponse[]>(`/v1/communities/${communityId}/join-requests`);
+}
+
+export function approveJoinRequest(
+  communityId: number,
+  requestId: number
+): Promise<JoinRequestResponse> {
+  return apiFetch<JoinRequestResponse>(
+    `/v1/communities/${communityId}/join-requests/${requestId}/approve`,
+    { method: "PUT" }
+  );
+}
+
+export function rejectJoinRequest(
+  communityId: number,
+  requestId: number
+): Promise<JoinRequestResponse> {
+  return apiFetch<JoinRequestResponse>(
+    `/v1/communities/${communityId}/join-requests/${requestId}/reject`,
+    { method: "PUT" }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User lookup (for displaying names in threads, history, etc.)
+// ---------------------------------------------------------------------------
+
+export function getUser(userId: number): Promise<User> {
+  return apiFetch<User>(`/v1/users/${userId}`);
+}
+
+// ---------------------------------------------------------------------------
+// My Claims (for listing history)
+// ---------------------------------------------------------------------------
+
+export function getMyClaims(): Promise<ClaimResponse[]> {
+  return apiFetch<ClaimResponse[]>("/v1/me/claims");
+}
