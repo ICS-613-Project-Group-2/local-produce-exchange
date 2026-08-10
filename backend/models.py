@@ -8,10 +8,14 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     CheckConstraint,
+    Index,
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, relationship
+
+from schemas import CATEGORY_VALUES, DIETARY_RESTRICTION_VALUES
 
 
 class Base(DeclarativeBase):
@@ -68,12 +72,30 @@ class Listing(Base):
     expiration_date = Column(Date, nullable=True)
     date_posted = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     pickup_location = Column(Text, nullable=True)
-    category = Column(Text, nullable=True)
+    category = Column(String(50), nullable=True)
+    dietary_restrictions = Column(ARRAY(String), server_default=text("'{}'"))
 
     photos = relationship("Photo", secondary="listing_photos", viewonly=True)
 
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="listings_quantity_check"),
+        CheckConstraint(
+            "category IN ("
+            + ", ".join(f"'{v}'" for v in CATEGORY_VALUES)
+            + ") OR category IS NULL",
+            name="listings_category_check",
+        ),
+        CheckConstraint(
+            "dietary_restrictions <@ ARRAY["
+            + ", ".join(f"'{v}'" for v in DIETARY_RESTRICTION_VALUES)
+            + "]::varchar[]",
+            name="listings_dietary_restrictions_check",
+        ),
+        Index(
+            "ix_listings_dietary_restrictions",
+            dietary_restrictions,
+            postgresql_using="gin",
+        ),
     )
 
 
