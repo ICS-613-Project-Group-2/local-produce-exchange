@@ -188,7 +188,7 @@ def create_claim(
         .filter(
             ClaimRequest.listing_id == listing_id,
             ClaimRequest.requester_user_id == current_user.user_id,
-            ClaimRequest.status.notin_(STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED),
+            ClaimRequest.status.notin_((STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED)),
         )
         .first()
     )
