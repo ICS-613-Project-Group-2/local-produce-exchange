@@ -78,7 +78,7 @@ def mark_notification_read(
 
 
 # marks every one of the current user's unread notifications as read
-@router.put("/v1/users/{user_id}/notifications/read-all")
+@router.put("/v1/users/{user_id}/notifications/read-all", status_code=status.HTTP_204_NO_CONTENT)
 def mark_all_notifications_read(
     user_id: int,
     current_user: User = Depends(get_current_user),
