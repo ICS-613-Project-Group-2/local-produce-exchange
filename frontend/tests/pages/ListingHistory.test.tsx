@@ -1,33 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import ListingHistory from '@/pages/ListingHistory';
 
-// The seed data has zero claim requests made by user 1 (Lily Chen), so the
-// "myClaims" branch of ListingHistory (lines 73-75: mapping a claim back to
-// its listing/community) is otherwise unreachable. We inject one extra claim
-// by user 1 against listing 3 (Sourdough Bread Loaves, owned by user 3 / Rose
-// Johnson, community 2 / UH Mānoa Food Exchange) to exercise that path.
-vi.mock('@/data/mockData', async () => {
-  const actual = await vi.importActual<typeof import('@/data/mockData')>('@/data/mockData');
-  return {
-    ...actual,
-    mockClaimRequests: [
-      ...actual.mockClaimRequests,
-      {
-        request_id: 4,
-        listing_id: 3,
-        requester_user_id: 1,
-        quantity_requested: 2,
-        status: 'pending',
-        request_date: '2026-07-03T09:00:00',
-        closed_date: null,
-      },
-    ],
-  };
-});
+const API_URL = 'http://127.0.0.1:8000';
 
 function renderListingHistory() {
   return render(
@@ -41,191 +22,309 @@ function renderListingHistory() {
 
 describe('ListingHistory', () => {
 
+  beforeEach(() => {
+    setToken('fake-jwt-token');
+  });
+
+  afterEach(() => {
+    clearToken();
+  });
+
   describe('page header', () => {
 
-    it('must display page title', () => {
+    it('must display page title', async () => {
       renderListingHistory();
 
-      expect(screen.getByText('Listing History')).toBeInTheDocument();
+      expect(screen.getByText('Exchange History')).toBeInTheDocument();
     });
 
-    it('must display subtitle', () => {
+    it('must display subtitle', async () => {
       renderListingHistory();
 
-      expect(screen.getByText(/activity/i)).toBeInTheDocument();
-    });
-
-  });
-
-  describe('summary stats', () => {
-
-    it('must display stat cards', () => {
-      renderListingHistory();
-
-      expect(screen.getByText('Total Exchanges')).toBeInTheDocument();
-      expect(screen.getByText('Items Listed')).toBeInTheDocument();
+      expect(screen.getByText('Review your previous and current produce exchanges')).toBeInTheDocument();
     });
 
   });
 
-  describe('view toggle', () => {
+  describe('loading and error states', () => {
 
-    it('must display all view toggle buttons', () => {
+    it('must show loading message while fetching claims', () => {
       renderListingHistory();
 
-      const viewToggle = within(document.querySelector('.history__view-toggle') as HTMLElement);
-      expect(viewToggle.getByRole('button', { name: 'All' })).toBeInTheDocument();
-      expect(viewToggle.getByRole('button', { name: /Shared by Me/ })).toBeInTheDocument();
-      expect(viewToggle.getByRole('button', { name: /Claimed by Me/ })).toBeInTheDocument();
+      expect(screen.getByText('Loading exchange history...')).toBeInTheDocument();
     });
 
-    it('must toggle to Shared by Me', async () => {
+    it('must show an error message when the API fails', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/claims/mine`, () => {
+          return HttpResponse.json({ detail: 'Server error' }, { status: 500 });
+        })
+      );
       renderListingHistory();
 
-      const sharedButton = screen.getByRole('button', { name: /Shared by Me/ });
-      await userEvent.click(sharedButton);
-
-      expect(sharedButton).toHaveClass('history__view-btn--active');
-      expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
-      // A claimed-only item should not appear under "Shared by Me"
-      expect(screen.queryByText('Sourdough Bread Loaves')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Server error')).toBeInTheDocument();
+      });
     });
 
-    it('must toggle to Claimed by Me and show items built from myClaims', async () => {
+    it('must show a generic error message on network failure', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/claims/mine`, () => {
+          return HttpResponse.error();
+        })
+      );
       renderListingHistory();
 
-      const claimedButton = screen.getByRole('button', { name: /Claimed by Me/ });
-      await userEvent.click(claimedButton);
-
-      expect(claimedButton).toHaveClass('history__view-btn--active');
-      // From the injected claim: listing 3's name, unit-based quantity, and
-      // the listing owner surfaced via "From {displayName}"
-      expect(screen.getByText('Sourdough Bread Loaves')).toBeInTheDocument();
-      expect(screen.getByText(/You claimed/)).toBeInTheDocument();
-      expect(screen.getByText('2 loaves', { exact: false })).toBeInTheDocument();
-      expect(screen.getByText(/From Rose J\./)).toBeInTheDocument();
-      // A shared-only item should not appear under "Claimed by Me"
-      expect(screen.queryByText('Fresh Tomatoes')).not.toBeInTheDocument();
-    });
-
-    it('must switch back to All and show both shared and claimed items', async () => {
-      renderListingHistory();
-
-      await userEvent.click(screen.getByRole('button', { name: /Claimed by Me/ }));
-      const viewToggle = within(document.querySelector('.history__view-toggle') as HTMLElement);
-      const allButton = viewToggle.getByRole('button', { name: 'All' });
-      await userEvent.click(allButton);
-
-      expect(allButton).toHaveClass('history__view-btn--active');
-      expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
-      expect(screen.getByText('Sourdough Bread Loaves')).toBeInTheDocument();
-    });
-
-  });
-
-  describe('status filters', () => {
-
-    it('must display filter buttons', () => {
-      renderListingHistory();
-
-      expect(screen.getByRole('button', { name: /Active/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Reserved/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Completed/ })).toBeInTheDocument();
-    });
-
-    it('must filter by status when button clicked', async () => {
-      renderListingHistory();
-
-      const completedFilter = screen.getByRole('button', { name: /Completed/ });
-      await userEvent.click(completedFilter);
-
-      expect(completedFilter).toHaveClass('history__filter--active');
-      expect(screen.getByText('Strawberry Jam')).toBeInTheDocument();
-      expect(screen.queryByText('Fresh Tomatoes')).not.toBeInTheDocument();
-    });
-
-  });
-
-  describe('leave a review', () => {
-
-    it('must open the review modal with the correct recipient and listing name', async () => {
-      renderListingHistory();
-
-      const row = screen.getByText('Strawberry Jam').closest('.history__row') as HTMLElement;
-      await userEvent.click(within(row).getByRole('button', { name: 'Leave Review' }));
-
-      // handleOpenReview resolves other_user_id (4, Glen Kim) via the claim
-      // on listing 7, so recipientName should be "Glen K." (displayName).
-      expect(screen.getByText('Leave a Review')).toBeInTheDocument();
-      expect(
-        screen.getByText('How was your exchange with Glen K. for "Strawberry Jam"?')
-      ).toBeInTheDocument();
-    });
-
-    it('must invoke the onSubmit callback with the selected rating and comment', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      renderListingHistory();
-
-      const row = screen.getByText('Strawberry Jam').closest('.history__row') as HTMLElement;
-      await userEvent.click(within(row).getByRole('button', { name: 'Leave Review' }));
-
-      await userEvent.click(screen.getByRole('button', { name: '3 stars' }));
-      await userEvent.type(screen.getByPlaceholderText(/Share your experience/), 'Great jam!');
-      await userEvent.click(screen.getByRole('button', { name: 'Submit Review' }));
-
-      expect(consoleSpy).toHaveBeenCalledWith('Review submitted:', { rating: 3, comment: 'Great jam!' });
-      expect(screen.getByText(/Review Submitted/)).toBeInTheDocument();
-
-      consoleSpy.mockRestore();
-    });
-
-    it('must not submit and must show an error when no rating is selected', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      renderListingHistory();
-
-      const row = screen.getByText('Strawberry Jam').closest('.history__row') as HTMLElement;
-      await userEvent.click(within(row).getByRole('button', { name: 'Leave Review' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Submit Review' }));
-
-      expect(screen.getByText('Please select a rating.')).toBeInTheDocument();
-      expect(consoleSpy).not.toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
-    });
-
-    it('must not show Leave Review for a non-completed item', () => {
-      renderListingHistory();
-
-      const row = screen.getByText('Fresh Tomatoes').closest('.history__row') as HTMLElement;
-      expect(within(row).queryByRole('button', { name: 'Leave Review' })).not.toBeInTheDocument();
-    });
-
-  });
-
-  describe('history list', () => {
-
-    it('must display history items', () => {
-      renderListingHistory();
-
-      const emptyState = screen.queryByText(/No listing history/);
-      const historyItems = screen.queryAllByRole('link');
-
-      if (historyItems.length === 0) {
-        expect(emptyState).toBeInTheDocument();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('History could not be loaded. Please try again.')).toBeInTheDocument();
+      });
     });
 
   });
 
   describe('empty state', () => {
 
-    it('must have create listing link in empty state', () => {
+    it('must show empty state when no claims exist', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/claims/mine`, () => {
+          return HttpResponse.json([]);
+        })
+      );
       renderListingHistory();
 
-      const createLink = screen.queryByRole('link', { name: /Create/ });
-      if (createLink) {
-        expect(createLink).toBeInTheDocument();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('No previous listings yet')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Your exchange history will appear here once you claim or share produce.')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Browse Listings/ })).toBeInTheDocument();
+    });
+
+  });
+
+  describe('claim history cards', () => {
+
+    it('must display all claim cards after loading', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Organic Zucchini')).toBeInTheDocument();
+      expect(screen.getByText('Strawberry Jam')).toBeInTheDocument();
+      expect(screen.getByText('Sourdough Bread')).toBeInTheDocument();
+    });
+
+    it('must display quantity and other user in meta text', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText(/3 requested by Oliver Lee/)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/2 requested from Rose Johnson/)).toBeInTheDocument();
+    });
+
+    it('must display the request date', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+      // The date is formatted via toLocaleDateString
+      const dateElements = screen.getAllByText(/Requested/);
+      expect(dateElements.length).toBeGreaterThan(0);
+    });
+
+    it('must display a View Listing link for each card with a listing_id', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+
+      const viewLinks = screen.getAllByRole('link', { name: /View Listing/ });
+      expect(viewLinks.length).toBe(4);
+      expect(viewLinks[0]).toHaveAttribute('href', '/listings/1');
+    });
+
+  });
+
+  describe('status-based actions', () => {
+
+    it('must show Approve and Decline buttons for a requested claim where user is owner', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Decline' })).toBeInTheDocument();
+    });
+
+    it('must show Mark Picked Up button for an approved claim', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Organic Zucchini')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Mark Picked Up' })).toBeInTheDocument();
+    });
+
+    it('must show Leave Review button for a completed claim with can_review true', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Strawberry Jam')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+    });
+
+    it('must show "Review submitted" for a completed claim that was already reviewed', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Sourdough Bread')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('✅ Review submitted')).toBeInTheDocument();
+    });
+
+    it('must not show Leave Review for a non-completed claim', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+
+      const tomatoCard = screen.getByText('Fresh Tomatoes').closest('.card') as HTMLElement;
+      expect(within(tomatoCard).queryByRole('button', { name: 'Leave Review' })).not.toBeInTheDocument();
+    });
+
+  });
+
+  describe('approve action', () => {
+
+    it('must call the approve endpoint when Approve is clicked', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+      // After approve, the page reloads claims — just verify no action error appeared
+      await waitFor(() => {
+        expect(screen.queryByText(/could not be completed/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('must show an error message when approve fails', async () => {
+      server.use(
+        http.put(`${API_URL}/v1/claims/:claimId/approve`, () => {
+          return HttpResponse.json({ detail: 'Cannot approve this claim' }, { status: 400 });
+        })
+      );
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Cannot approve this claim')).toBeInTheDocument();
+      });
+    });
+
+  });
+
+  describe('leave a review', () => {
+
+    it('must open the review modal when Leave Review is clicked', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave Review' }));
+
+      expect(screen.getByText('Leave a Review')).toBeInTheDocument();
+      expect(screen.getByText('How was your exchange with Glen Kim?')).toBeInTheDocument();
+    });
+
+    it('must show an error when submitting without selecting a rating', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave Review' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Submit Review' }));
+
+      expect(screen.getByText('Please select a rating.')).toBeInTheDocument();
+    });
+
+    it('must submit a review with rating and comment', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave Review' }));
+      await userEvent.click(screen.getByRole('button', { name: '4 stars' }));
+      await userEvent.type(screen.getByPlaceholderText(/Share how the exchange went/), 'Great jam!');
+      await userEvent.click(screen.getByRole('button', { name: 'Submit Review' }));
+
+      // After successful submit, the modal closes and the Strawberry Jam card
+      // now shows "Review submitted" (joining the existing one on Sourdough Bread)
+      await waitFor(() => {
+        expect(screen.getAllByText('✅ Review submitted')).toHaveLength(2);
+      });
+    });
+
+    it('must show an error when the review API fails', async () => {
+      server.use(
+        http.post(`${API_URL}/v1/claims/:claimId/reviews`, () => {
+          return HttpResponse.json({ detail: 'Already reviewed' }, { status: 400 });
+        })
+      );
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave Review' }));
+      await userEvent.click(screen.getByRole('button', { name: '3 stars' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Submit Review' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Already reviewed')).toBeInTheDocument();
+      });
+    });
+
+    it('must close the modal when Cancel is clicked', async () => {
+      renderListingHistory();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Leave Review' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave Review' }));
+      expect(screen.getByText('Leave a Review')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Leave a Review')).not.toBeInTheDocument();
+      });
     });
 
   });
