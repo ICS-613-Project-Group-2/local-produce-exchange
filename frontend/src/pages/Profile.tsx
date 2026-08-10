@@ -189,7 +189,7 @@ function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
 }
 
 function ProfileSettings() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -236,6 +236,7 @@ function ProfileSettings() {
         name: formData.name,
         location: formData.location || undefined,
       });
+      await refreshUser();
       setSaved(true);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to save changes");
@@ -251,6 +252,7 @@ function ProfileSettings() {
     try {
       const photo = await uploadPhoto(file);
       await updateProfile({ profile_photo_id: photo.photo_id });
+      await refreshUser();
       setSaved(true);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to upload photo");

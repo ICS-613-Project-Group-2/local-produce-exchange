@@ -242,6 +242,11 @@ export function getMe(): Promise<User> {
   return apiFetch<User>("/v1/me");
 }
 
+// lists only the current user's own listings
+export function getMyListings(): Promise<ListingResponse[]> {
+  return apiFetch<ListingResponse[]>("/v1/me/listings");
+}
+
 // ---------------------------------------------------------------------------
 // Listings
 // ---------------------------------------------------------------------------

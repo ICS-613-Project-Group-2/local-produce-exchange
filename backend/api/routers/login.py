@@ -6,8 +6,9 @@ from api.deps import get_current_user
 from api.routers.reviews import get_user_rating
 from core.auth import hash_password, verify_password, create_access_tkn
 
-from models import Photo, User
-from schemas import RegisterUser, GetUser, LoginUser, TokenResponse, UpdateUser
+from models import Listing, Photo, User
+from schemas import RegisterUser, GetUser, LoginUser, TokenResponse, UpdateUser, ListingResponse
+from api.routers.listings import _serialize_listing
 
 
 router = APIRouter(
@@ -129,3 +130,17 @@ def update_me(
         photo = db.query(Photo).filter(Photo.photo_id == current_user.profile_photo_id).first()
         response.profile_photo_url = photo.image_link if photo else None
     return response
+
+
+@router.get("/me/listings", response_model=list[ListingResponse])
+def list_my_listings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    listings = (
+        db.query(Listing)
+        .filter(Listing.user_id == current_user.user_id)
+        .order_by(Listing.date_posted.desc())
+        .all()
+    )
+    return [_serialize_listing(listing) for listing in listings]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import SearchBar from "../components/ui/SearchBar";
@@ -22,17 +22,30 @@ export default function BrowseListings() {
   const [listings, setListings] = useState<ListingResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search query — wait 400ms after user stops typing
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     loadListings();
-  }, [searchQuery, activeCategory]);
+  }, [debouncedSearch, activeCategory]);
 
   async function loadListings() {
     setLoading(true);
     setError(null);
     try {
       const data = await browseListings({
-        search: searchQuery || undefined,
+        search: debouncedSearch || undefined,
         category: activeCategory !== "All" ? activeCategory : undefined,
       });
       setListings(data.filter((l) => l.status !== "closed" && l.status !== "completed"));

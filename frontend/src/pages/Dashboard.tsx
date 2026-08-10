@@ -6,7 +6,7 @@ import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
 import { useAuth } from "../context/AuthContext";
 import {
-  browseListings,
+  getMyListings,
   listCommunities,
   type ListingResponse,
   type CommunityResponse,
@@ -28,11 +28,10 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [listingsData, commData] = await Promise.all([
-        browseListings().catch(() => []),
+        getMyListings().catch(() => []),
         listCommunities().catch(() => ({ my_communities: [], public_communities: [] })),
       ]);
-      // Filter to only user's own listings
-      setMyListings(listingsData.filter((l) => l.user_id === user?.user_id));
+      setMyListings(listingsData);
       setMyCommunities(commData.my_communities);
     } catch {
       // Fail gracefully
