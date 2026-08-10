@@ -4,7 +4,6 @@ import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
-import { createCommunity, inviteToCommunity, ApiError } from "../lib/api";
 import "./CreateCommunity.css";
 
 interface FormData {
@@ -27,8 +26,6 @@ export default function CreateCommunity() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
@@ -47,42 +44,14 @@ export default function CreateCommunity() {
     return newErrors;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-
-    setSubmitError(null);
-    setSubmitting(true);
-
-    try {
-      const community = await createCommunity({
-        name: formData.name,
-        description: formData.description,
-        location: formData.location,
-        guidelines: formData.guidelines,
-        is_private: formData.is_private === "true",
-      });
-
-      if (formData.invite_email) {
-        await inviteToCommunity(community.community_id, formData.invite_email);
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setSubmitError("You need to be logged in to create a community.");
-      } else if (err instanceof ApiError) {
-        setSubmitError(err.message);
-      } else {
-        setSubmitError("Something went wrong while creating your community. Please try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
+    setSubmitted(true);
   }
 
   if (submitted) {
@@ -220,14 +189,9 @@ export default function CreateCommunity() {
             </section>
 
             {/* Actions */}
-            {submitError && (
-              <p className="create-community__submit-error" role="alert">
-                {submitError}
-              </p>
-            )}
             <div className="create-community__actions">
-              <Button variant="primary" type="submit" size="lg" disabled={submitting}>
-                {submitting ? "Creating..." : "Create Community"}
+              <Button variant="primary" type="submit" size="lg">
+                Create Community
               </Button>
               <Link to="/communities">
                 <Button variant="outline" size="lg">Cancel</Button>

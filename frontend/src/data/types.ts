@@ -19,18 +19,18 @@ export interface Community {
 
 export interface Listing {
   listing_id: number;
-  user_id: number | null;
-  community_id: number | null;
+  user_id: number;
+  community_id: number;
   name: string;
-  description: string | null;
+  description: string;
   quantity: number;
-  unit: string | null;
-  category: string | null;
-  status: string | null;
-  expiration_date: string | null;
-  date_posted: string | null;
-  pickup_location: string | null;
-  photo_url: string | null;
+  unit: string;
+  category: string;
+  status: "available" | "reserved" | "expiring-soon" | "picked-up" | "completed" | "closed";
+  expiration_date: string;
+  date_posted: string;
+  pickup_location: string;
+  photo_url: string;
 }
 
 export interface ClaimRequest {

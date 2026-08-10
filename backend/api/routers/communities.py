@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -13,7 +13,6 @@ from schemas import (
     CommunitiesListResponse,
     InviteUser,
     InvitationResponse,
-    MembershipResponse,
 )
 
 router = APIRouter()
@@ -64,7 +63,7 @@ def _check_moderation_perms(db: Session, community_id: int, user_id: int) -> Mem
 # checks if a user has a pending invitation to a community
 # returns True if the user has a pending invitation, False otherwise    
 def _has_pending_invitation(db: Session, community_id: int, email: str) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(datetime.timezone.utc)
     return (
         db.query(Invitation)
         .filter(
@@ -179,7 +178,7 @@ def create_community(
         user_id = current_user.user_id,
         community_id = community.community_id,
         role = "owner",
-        date_joined = datetime.now(timezone.utc),
+        date_joined = datetime.now(datetime.timezone.utc),
     )
     db.add(owner_membership)
 
@@ -268,7 +267,7 @@ def invite_to_community(
         )
 
     # create a new invitation for the invited user and add it to the database
-    now = datetime.now(timezone.utc)
+    now = datetime.now(datetime.timezone.utc)
     invitation = Invitation(
         community_id = community_id,
         sender_user_id = current_user.user_id,
@@ -285,7 +284,7 @@ def invite_to_community(
     return invitation
 
 
-@router.post("/v1/communities/{community_id}/join", response_model=MembershipResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/v1/communities/{community_id}/join", response_model=Membership, status_code=status.HTTP_201_CREATED)
 def join_community(
     community_id: int,
     current_user: User = Depends(get_current_user),
@@ -303,7 +302,7 @@ def join_community(
         user_id = current_user.user_id,
         community_id = community_id,
         role = "member",
-        date_joined = datetime.now(timezone.utc),
+        date_joined = datetime.now(datetime.timezone.utc),
     )
     db.add(membership)
     db.commit()

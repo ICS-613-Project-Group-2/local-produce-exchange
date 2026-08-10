@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardImage, CardBody, CardFooter } from "../components/ui/Card";
-import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
+import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
 import FormField, { Textarea } from "../components/ui/FormField";
-import { NO_PHOTO_URL } from "../lib/placeholder";
 import {
   getCommunityById,
   getListingsByCommunity,
@@ -155,11 +154,11 @@ function ListingsTab({ communityId }: { communityId: number }) {
     <div className="community-detail__grid">
       {listings.map((listing) => (
         <Card key={listing.listing_id}>
-          <CardImage src={listing.photo_url || NO_PHOTO_URL} alt={listing.name} />
+          <CardImage src={listing.photo_url} alt={listing.name} />
           <CardBody>
             <div className="community-detail__card-header">
               <h3>{listing.name}</h3>
-              <StatusBadge status={(listing.status as BadgeStatus) || "available"} />
+              <StatusBadge status={listing.status} />
             </div>
             <p className="community-detail__card-meta">
               {listing.quantity} {listing.unit} · {listing.category}

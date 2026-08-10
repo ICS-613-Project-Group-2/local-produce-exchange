@@ -39,8 +39,8 @@ export default function SignUp() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitting, setSubmitting] = useState(false);
+  const [_submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -141,12 +141,6 @@ export default function SignUp() {
               <p>Join 500+ members sharing food locally</p>
             </div>
 
-            {submitError && (
-              <p className="auth-page__submit-error" role="alert">
-                {submitError}
-              </p>
-            )}
-
             <form onSubmit={handleSubmit} className="auth-page__form">
               <FormField label="Username" htmlFor="username" required error={errors.username} helperText="Letters, numbers, hyphens, and underscores only.">
                 <Input
@@ -239,8 +233,8 @@ export default function SignUp() {
                 </div>
               </FormField>
 
-              <Button variant="primary" type="submit" size="lg" disabled={submitting}>
-                {submitting ? "Creating account..." : "Create Account"}
+              <Button variant="primary" type="submit" size="lg">
+                Create Account
               </Button>
             </form>
 

@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Button from "../components/ui/Button";
-import StatusBadge, { type BadgeStatus } from "../components/ui/StatusBadge";
+import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
 import { getThreadById, getListingById, getUserById, mockClaimRequests } from "../data/mockData";
 import { displayName } from "../data/utils";
-import { NO_PHOTO_URL } from "../lib/placeholder";
 import type { Message } from "../data/types";
 import "./MessageThread.css";
 
@@ -111,11 +110,11 @@ export default function MessageThread() {
       {listing && (
         <div className={`thread-page__listing ${listingCollapsed ? "thread-page__listing--collapsed" : ""}`}>
           <button className="thread-page__listing-toggle" onClick={() => setListingCollapsed(!listingCollapsed)}>
-            <img src={listing.photo_url || NO_PHOTO_URL} alt={listing.name} className="thread-page__listing-thumb" />
+            <img src={listing.photo_url} alt={listing.name} className="thread-page__listing-thumb" />
             <div className="thread-page__listing-info">
               <span className="thread-page__listing-name">{listing.name}</span>
               <span className="thread-page__listing-meta">
-                {listing.quantity} {listing.unit} · <StatusBadge status={(listing.status as BadgeStatus) || "available"} />
+                {listing.quantity} {listing.unit} · <StatusBadge status={listing.status} />
               </span>
             </div>
             <span className="thread-page__listing-chevron">{listingCollapsed ? "▼" : "▲"}</span>
@@ -123,9 +122,7 @@ export default function MessageThread() {
           {!listingCollapsed && (
             <div className="thread-page__listing-details">
               <p>📍 {listing.pickup_location}</p>
-              {listing.expiration_date && (
-                <p>📅 Expires {new Date(listing.expiration_date).toLocaleDateString()}</p>
-              )}
+              <p>📅 Expires {new Date(listing.expiration_date).toLocaleDateString()}</p>
               {claimRequest && (
                 <p className="thread-page__claim-info">
                   Requested: {claimRequest.quantity_requested} {listing.unit} · <StatusBadge status={claimRequest.status} />
