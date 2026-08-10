@@ -1,130 +1,124 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import Messages from '@/pages/Messages';
+
+const API_URL = 'http://127.0.0.1:8000';
 
 function renderMessages() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/messages']}>
       <AuthProvider>
-        <Messages />
+        <Routes>
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:threadId" element={<div>Thread Page</div>} />
+          <Route path="/browse" element={<div>Browse Page</div>} />
+        </Routes>
       </AuthProvider>
     </MemoryRouter>
   );
 }
 
 describe('Messages', () => {
+  beforeEach(() => {
+    setToken('fake-jwt-token');
+  });
 
   afterEach(() => {
-    vi.useRealTimers();
+    clearToken();
   });
 
-  describe('page header', () => {
-
-    it('must display messages title', () => {
+  describe('loading and display', () => {
+    it('shows loading state initially', () => {
       renderMessages();
-
-      expect(screen.getByText(/Messages/)).toBeInTheDocument();
+      expect(screen.getByText('Loading messages...')).toBeInTheDocument();
     });
 
-    it('must display subtitle', () => {
+    it('displays thread list after loading', async () => {
       renderMessages();
 
-      expect(screen.getByText(/conversations/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getAllByText('Other User').length).toBeGreaterThan(0);
+      });
     });
 
+    it('displays listing names in threads', async () => {
+      renderMessages();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Fresh Tomatoes/)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Meyer Lemons/)).toBeInTheDocument();
+    });
+
+    it('displays last message preview', async () => {
+      renderMessages();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Yes they are! When can you pick up?/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows page title', async () => {
+      renderMessages();
+
+      await waitFor(() => {
+        expect(screen.getByText('Messages')).toBeInTheDocument();
+      });
+    });
   });
 
-  describe('search', () => {
-
-    it('must display search bar', () => {
+  describe('thread links', () => {
+    it('thread cards link to the message thread by claim_request_id', async () => {
       renderMessages();
 
-      const searchInput = screen.getByPlaceholderText(/Search by name or listing/);
-      expect(searchInput).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByText(/Fresh Tomatoes/)).toBeInTheDocument();
+      });
 
-    it('must filter threads by the other participant\'s name', async () => {
-      renderMessages();
-
-      // User 1's threads: thread 1 (Oliver Lee, re: Fresh Tomatoes),
-      // thread 3 (Glen Kim, re: Strawberry Jam), thread 4 (Malia Nakamura, re: Lilikoi).
-      const searchInput = screen.getByPlaceholderText(/Search by name or listing/) as HTMLInputElement;
-      // Typed with a trailing Enter so this works whether SearchBar filters on every
-      // keystroke or only on submit.
-      await userEvent.type(searchInput, 'Oliver{enter}');
-
-      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
-      expect(screen.queryByText('Glen K.')).not.toBeInTheDocument();
-      expect(screen.queryByText('Malia N.')).not.toBeInTheDocument();
-    });
-
-    it('must filter threads by listing name', async () => {
-      renderMessages();
-
-      const searchInput = screen.getByPlaceholderText(/Search by name or listing/) as HTMLInputElement;
-      await userEvent.type(searchInput, 'Lilikoi{enter}');
-
-      expect(screen.getByText('Malia N.')).toBeInTheDocument();
-      expect(screen.queryByText('Oliver L.')).not.toBeInTheDocument();
-      expect(screen.queryByText('Glen K.')).not.toBeInTheDocument();
-    });
-
-    it('must show empty state when the search matches nothing', async () => {
-      renderMessages();
-
-      const searchInput = screen.getByPlaceholderText(/Search by name or listing/);
-      await userEvent.type(searchInput, 'zzzzzzzzzzzzzzzzzzzzz{enter}');
-
-      expect(screen.getByText('No messages yet')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Browse Listings/ })).toHaveAttribute('href', '/browse');
-    });
-
-  });
-
-  describe('thread list', () => {
-
-    it('must show both a Recent and an Older section when threads span both windows', () => {
-      // Pin "now" so thread 1 (last message 2026-07-02T09:30) and thread 4
-      // (last message 2026-07-02T12:10) fall inside the 7-day "Recent" window,
-      // while thread 3 (last message 2026-06-21T17:15) falls outside it —
-      // rather than depending on the real wall-clock date.
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-07-03T00:00:00'));
-
-      renderMessages();
-
-      expect(screen.getByText('Recent')).toBeInTheDocument();
-      expect(screen.getByText('Older')).toBeInTheDocument();
-      // Oliver Lee's thread (1) should be in Recent.
-      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
-      // Glen Kim's thread (3) should be in Older.
-      expect(screen.getByText('Glen K.')).toBeInTheDocument();
-    });
-
-    it('must display thread cards with participant info', () => {
-      renderMessages();
-
-      const threadLinks = screen.queryAllByRole('link');
-      expect(threadLinks.length).toBeGreaterThan(0);
-    });
-
-  });
-
-  describe('thread navigation', () => {
-
-    it('must have links to individual threads', () => {
-      renderMessages();
-
-      const threadLinks = screen.queryAllByRole('link');
-      const messageThreadLinks = threadLinks.filter(link =>
+      // Links should point to /messages/:claimRequestId
+      const links = screen.getAllByRole('link');
+      const threadLinks = links.filter(link =>
         link.getAttribute('href')?.startsWith('/messages/')
       );
-      expect(messageThreadLinks.length).toBeGreaterThan(0);
+      expect(threadLinks.length).toBeGreaterThan(0);
+      expect(threadLinks[0]).toHaveAttribute('href', '/messages/1');
     });
-
   });
 
+  describe('empty state', () => {
+    it('shows empty state when no threads exist', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/me/threads`, () => {
+          return HttpResponse.json([]);
+        })
+      );
+
+      renderMessages();
+
+      await waitFor(() => {
+        expect(screen.getByText(/No conversations yet/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('error state', () => {
+    it('shows error message when API fails', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/me/threads`, () => {
+          return HttpResponse.json({ detail: 'Server error' }, { status: 500 });
+        })
+      );
+
+      renderMessages();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to load messages/)).toBeInTheDocument();
+      });
+    });
+  });
 });

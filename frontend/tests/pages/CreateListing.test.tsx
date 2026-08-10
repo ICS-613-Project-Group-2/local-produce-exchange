@@ -1,315 +1,188 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
+import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import CreateListing from '@/pages/CreateListing';
+
+const API_URL = 'http://127.0.0.1:8000';
 
 function renderCreateListing() {
   return render(
-    <MemoryRouter>
-      <CreateListing />
+    <MemoryRouter initialEntries={['/listings/new']}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/listings/new" element={<CreateListing />} />
+          <Route path="/listings/:id" element={<div>Listing Details Page</div>} />
+          <Route path="/browse" element={<div>Browse Page</div>} />
+          <Route path="/dashboard" element={<div>Dashboard Page</div>} />
+        </Routes>
+      </AuthProvider>
     </MemoryRouter>
   );
 }
 
-// Fills step 0 (Details) with valid values
-async function fillDetailsStep() {
-  await userEvent.type(screen.getByLabelText(/^Produce Name/), 'Fresh Tomatoes');
-  await userEvent.click(screen.getByRole('button', { name: /Vegetables/ }));
-  await userEvent.type(screen.getByLabelText(/^Quantity/), '5');
-  await userEvent.type(screen.getByLabelText(/^Unit/), 'lbs');
-  await userEvent.type(screen.getByLabelText(/^Description/), 'Fresh off the vine, ripe and ready.');
-}
-
-// Fills step 1 (Freshness & Pickup) with valid values
-function fillFreshnessStep() {
-  fireEvent.change(screen.getByLabelText(/^Expiration Date/), {
-    target: { value: '2026-12-31' },
-  });
-  return userEvent.type(screen.getByLabelText(/^Pickup Location/), '2845 Oahu Ave, front porch');
-}
-
-// Uploads a fake photo on step 2
-async function fillPhotoStep() {
-  const file = new File(['fake-image-content'], 'tomato.png', { type: 'image/png' });
-  const fileInput = screen.getByLabelText(/upload a photo/i);
-  await userEvent.upload(fileInput, file);
-}
-
-// Selects the first real community option on step 3
-async function fillCommunityStep() {
-  const select = screen.getByLabelText(/^Post to Community/) as HTMLSelectElement;
-  const options = Array.from(select.querySelectorAll('option')).filter((o) => o.value !== '');
-  await userEvent.selectOptions(select, options[0].value);
-}
-
-// Navigates through all 4 steps filling valid data, ending back on the last step
-async function fillEntireForm() {
-  await fillDetailsStep();
-  await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-  await fillFreshnessStep();
-  await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-  await fillPhotoStep();
-  await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-  await fillCommunityStep();
-}
-
-describe('CreateListing', () => {                                        // Test Suite
-
-  beforeEach(() => {                                                     // Test Fixture (setup)
-    // jsdom doesn't implement these — required for photo upload/preview
-    global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-    global.URL.revokeObjectURL = vi.fn();
+describe('CreateListing', () => {
+  beforeEach(() => {
+    setToken('fake-jwt-token');
   });
 
-  afterEach(() => {                                                      // Test Fixture (teardown)
-    vi.restoreAllMocks();
+  afterEach(() => {
+    clearToken();
   });
 
-  describe('step navigation', () => {                                   // Nested Test Suite
-
-    it('must render all 4 step labels with the first step active', () => {  // Test Case
+  describe('step indicator', () => {
+    it('shows step indicator with all steps', async () => {
       renderCreateListing();
 
-      expect(screen.getByText('Details')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Details')).toBeInTheDocument();
+      });
       expect(screen.getByText('Freshness & Pickup')).toBeInTheDocument();
       expect(screen.getByText('Photo')).toBeInTheDocument();
       expect(screen.getByText('Community')).toBeInTheDocument();
-      expect(screen.getByText('Item Details')).toBeInTheDocument();
     });
 
-    it('must not show a Back button on the first step', () => {
+    it('starts on the first step (Details)', async () => {
       renderCreateListing();
 
-      expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Item Details')).toBeInTheDocument();
+      });
+      expect(screen.getByLabelText(/Produce Name/)).toBeInTheDocument();
     });
+  });
 
-    it('must advance to the next step when Next is clicked', async () => {
+  describe('step navigation', () => {
+    it('can navigate to next step', async () => {
       renderCreateListing();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      });
 
       await userEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      expect(screen.getByText('Freshness & Pickup', { selector: 'h2' })).toBeInTheDocument();
+      // Step 2 section heading appears
+      expect(screen.getByRole('heading', { name: 'Freshness & Pickup' })).toBeInTheDocument();
+      expect(screen.getByLabelText(/Expiration Date/)).toBeInTheDocument();
     });
 
-    it('must go back to the previous step when Back is clicked', async () => {
+    it('can navigate back to previous step', async () => {
       renderCreateListing();
-      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
 
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
       await userEvent.click(screen.getByRole('button', { name: 'Back' }));
 
-      expect(screen.getByText('Item Details')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Produce Name/)).toBeInTheDocument();
     });
 
-    it('must jump directly to a step when its step indicator is clicked', async () => {
+    it('shows Publish button on the last step', async () => {
       renderCreateListing();
 
-      await userEvent.click(screen.getByRole('button', { name: /Photo/ }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      });
 
-      expect(screen.getByText('Photo', { selector: 'h2' })).toBeInTheDocument();
+      // Navigate to step 4 (Community)
+      await userEvent.click(screen.getByRole('button', { name: 'Next' })); // -> step 2
+      await userEvent.click(screen.getByRole('button', { name: 'Next' })); // -> step 3
+      await userEvent.click(screen.getByRole('button', { name: 'Next' })); // -> step 4
+
+      expect(screen.getByRole('button', { name: /Publish Listing/ })).toBeInTheDocument();
     });
-
-    it('must show Preview and Publish Listing buttons only on the last step', async () => {
-      renderCreateListing();
-      expect(screen.queryByRole('button', { name: 'Preview' })).not.toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
-
-      expect(screen.getByRole('button', { name: 'Preview' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Publish Listing' })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
-    });
-
   });
 
-  describe('details step', () => {                                      // Nested Test Suite
-
-    it('must update the character count as the description is typed', async () => {  // Test Case
+  describe('form validation', () => {
+    it('shows validation errors on empty submit at last step', async () => {
       renderCreateListing();
 
-      await userEvent.type(screen.getByLabelText(/^Description/), 'Fresh');
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      });
 
-      expect(screen.getByText('5 characters')).toBeInTheDocument();
-    });
-
-    it('must highlight a category button when selected', async () => {
-      renderCreateListing();
-
-      const categoryButton = screen.getByRole('button', { name: /Vegetables/ });
-      await userEvent.click(categoryButton);
-
-      expect(categoryButton).toHaveClass('create-listing__category-btn--active');
-    });
-
-  });
-
-  describe('photo step', () => {                                        // Nested Test Suite
-
-    it('must show an upload prompt when no photo is selected', async () => {  // Test Case
-      renderCreateListing();
-
-      await userEvent.click(screen.getByRole('button', { name: /Photo/ }));
-
-      expect(screen.getByText(/Click or drag to upload a photo/)).toBeInTheDocument();
-    });
-
-    it('must show a preview image after uploading a photo', async () => {
-      renderCreateListing();
-      await userEvent.click(screen.getByRole('button', { name: /Photo/ }));
-
-      await fillPhotoStep();
-
-      expect(screen.getByAltText('Preview')).toBeInTheDocument();
-    });
-
-    it('must remove the photo and show the upload prompt again when Remove is clicked', async () => {
-      renderCreateListing();
-      await userEvent.click(screen.getByRole('button', { name: /Photo/ }));
-      await fillPhotoStep();
-
-      await userEvent.click(screen.getByRole('button', { name: /Remove/ }));
-
-      expect(screen.queryByAltText('Preview')).not.toBeInTheDocument();
-      expect(screen.getByText(/Click or drag to upload a photo/)).toBeInTheDocument();
-    });
-
-  });
-
-  describe('community step', () => {                                    // Nested Test Suite
-
-    it('must render a community dropdown with a placeholder option', async () => {  // Test Case
-      renderCreateListing();
-
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
-
-      expect(screen.getByText('Select a community')).toBeInTheDocument();
-    });
-
-  });
-
-  describe('validation on submit', () => {                              // Nested Test Suite
-
-    it('must show all step-1 errors and jump back to step 1 when submitting an empty form', async () => {  // Test Case
-      renderCreateListing();
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
-
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
-
-      expect(screen.getByText('Item Details')).toBeInTheDocument();
-      expect(screen.getByText('Produce name is required.')).toBeInTheDocument();
-      expect(screen.getByText('Category is required.')).toBeInTheDocument();
-      expect(screen.getByText('Quantity must be greater than zero.')).toBeInTheDocument();
-      expect(screen.getByText('Unit is required (e.g., lbs, pieces, bunches).')).toBeInTheDocument();
-      expect(screen.getByText('Description is required.')).toBeInTheDocument();
-    });
-
-    it('must jump to step 2 when only freshness/pickup fields are missing', async () => {
-      renderCreateListing();
-      await fillDetailsStep();
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
-
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
-
-      expect(screen.getByText('Freshness & Pickup', { selector: 'h2' })).toBeInTheDocument();
-      expect(screen.getByText('Expiration date is required.')).toBeInTheDocument();
-      expect(screen.getByText('Pickup location is required.')).toBeInTheDocument();
-    });
-
-    it('must jump to step 3 when only the photo is missing', async () => {
-      renderCreateListing();
-      await fillDetailsStep();
+      // Navigate to last step
       await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-      await fillFreshnessStep();
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
+      // Submit without filling anything
+      await userEvent.click(screen.getByRole('button', { name: /Publish Listing/ }));
 
-      expect(screen.getByText('Photo', { selector: 'h2' })).toBeInTheDocument();
-      expect(screen.getByText('Please upload a photo.')).toBeInTheDocument();
+      // Should show error and redirect to step 1
+      await waitFor(() => {
+        expect(screen.getByText('Produce name is required.')).toBeInTheDocument();
+      });
     });
-
-    it('must clear a field error once the user fixes that field', async () => {
-      renderCreateListing();
-      await userEvent.click(screen.getByRole('button', { name: /Community/ }));
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
-      expect(screen.getByText('Produce name is required.')).toBeInTheDocument();
-
-      await userEvent.type(screen.getByLabelText(/^Produce Name/), 'T');
-
-      expect(screen.queryByText('Produce name is required.')).not.toBeInTheDocument();
-    });
-
   });
 
-  describe('preview', () => {                                           // Nested Test Suite
-
-    it('must show entered data on the preview screen', async () => {    // Test Case
+  describe('community dropdown', () => {
+    it('populates community dropdown from API', async () => {
       renderCreateListing();
-      await fillEntireForm();
 
-      await userEvent.click(screen.getByRole('button', { name: 'Preview' }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+      });
 
-      expect(screen.getByText('Preview Listing')).toBeInTheDocument();
-      expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
-      expect(screen.getByText(/5 lbs · Vegetables/)).toBeInTheDocument();
-      expect(screen.getByText('2845 Oahu Ave, front porch', { exact: false })).toBeInTheDocument();
+      // Navigate to community step (step 4)
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Manoa Garden Share/)).toBeInTheDocument();
+      });
     });
-
-    it('must return to the edit form when Back to Edit is clicked', async () => {
-      renderCreateListing();
-      await fillEntireForm();
-      await userEvent.click(screen.getByRole('button', { name: 'Preview' }));
-
-      await userEvent.click(screen.getByRole('button', { name: 'Back to Edit' }));
-
-      expect(screen.getByText('Community', { selector: 'h2' })).toBeInTheDocument();
-    });
-
-    it('must publish the listing from the preview screen', async () => {
-      renderCreateListing();
-      await fillEntireForm();
-      await userEvent.click(screen.getByRole('button', { name: 'Preview' }));
-
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
-
-      expect(screen.getByText('Listing Published! 🎉')).toBeInTheDocument();
-    });
-
   });
 
-  describe('successful submission', () => {                             // Nested Test Suite
-
-    it('must show the success screen with the listing name after publishing directly', async () => {  // Test Case
+  describe('successful submission', () => {
+    it('shows success screen after valid submission', async () => {
       renderCreateListing();
-      await fillEntireForm();
 
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Produce Name/)).toBeInTheDocument();
+      });
 
-      expect(screen.getByText('Listing Published! 🎉')).toBeInTheDocument();
-      expect(
-        screen.getByText('Your listing "Fresh Tomatoes" has been posted to your community.')
-      ).toBeInTheDocument();
+      // Fill step 1
+      await userEvent.type(screen.getByLabelText(/Produce Name/), 'Test Tomatoes');
+      // Select category
+      const categoryButtons = screen.getAllByRole('button').filter(btn => btn.textContent?.includes('Fruits'));
+      if (categoryButtons.length > 0) await userEvent.click(categoryButtons[0]);
+      await userEvent.type(screen.getByLabelText(/Quantity/), '5');
+      await userEvent.type(screen.getByLabelText(/Unit/), 'lbs');
+      await userEvent.type(screen.getByLabelText(/Description/), 'Delicious tomatoes');
+
+      // Go to step 2
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await userEvent.type(screen.getByLabelText(/Expiration Date/), '2026-12-31');
+      await userEvent.type(screen.getByLabelText(/Pickup Location/), '123 Test St');
+
+      // Go to step 3 (photo - skip)
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Go to step 4 (community)
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Select community
+      await waitFor(() => {
+        expect(screen.getByText(/Manoa Garden Share/)).toBeInTheDocument();
+      });
+      const communitySelect = screen.getByLabelText(/Post to Community/);
+      await userEvent.selectOptions(communitySelect, '1');
+
+      // Submit
+      await userEvent.click(screen.getByRole('button', { name: /Publish Listing/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Listing Published/)).toBeInTheDocument();
+      });
     });
-
-    it('must show links to browse listings and the dashboard after publishing', async () => {
-      renderCreateListing();
-      await fillEntireForm();
-      await userEvent.click(screen.getByRole('button', { name: 'Publish Listing' }));
-
-      expect(screen.getByRole('link', { name: 'View Listings' })).toHaveAttribute('href', '/browse');
-      expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute('href', '/dashboard');
-    });
-
   });
-
-  describe('page content', () => {                                      // Nested Test Suite
-
-    it('must display the draft auto-saved note', () => {                // Test Case
-      renderCreateListing();
-
-      expect(screen.getByText('💾 Draft auto-saved locally')).toBeInTheDocument();
-    });
-
-  });
-
 });

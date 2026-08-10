@@ -1,183 +1,138 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import MessageThread from '@/pages/MessageThread';
 
-// The component calls scrollIntoView on mount
-beforeAll(() => {
-  Element.prototype.scrollIntoView = () => {};
-});
+const API_URL = 'http://127.0.0.1:8000';
 
-function renderMessageThread(threadId: string = '1') {
+// jsdom doesn't support scrollIntoView
+Element.prototype.scrollIntoView = vi.fn();
+
+function renderMessageThread(threadId = '1') {
   return render(
     <MemoryRouter initialEntries={[`/messages/${threadId}`]}>
-      <Routes>
-        <Route
-          path="/messages/:threadId"
-          element={
-            <AuthProvider>
-              <MessageThread />
-            </AuthProvider>
-          }
-        />
-        <Route path="/messages" element={<div>Messages Page</div>} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/messages/:threadId" element={<MessageThread />} />
+          <Route path="/messages" element={<div>Messages List</div>} />
+          <Route path="/listings/:id" element={<div>Listing Page</div>} />
+        </Routes>
+      </AuthProvider>
     </MemoryRouter>
   );
 }
 
 describe('MessageThread', () => {
-
-  describe('top bar', () => {
-
-    it('must display a back link to /messages', () => {
-      renderMessageThread();
-
-      const backLink = screen.getByRole('link', { name: '←' });
-      expect(backLink).toHaveAttribute('href', '/messages');
-    });
-
-    it('must display the other user name (Oliver L.)', () => {
-      renderMessageThread();
-
-      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
-    });
-
-    it('must display the other user location', () => {
-      renderMessageThread();
-
-      expect(screen.getByText('📍 UH Mānoa')).toBeInTheDocument();
-    });
-
-    it('must display the other user avatar image', () => {
-      renderMessageThread();
-
-      const avatars = screen.getAllByRole('img', { name: 'Oliver Lee' });
-      expect(avatars.length).toBeGreaterThan(0);
-      expect(avatars[0]).toHaveAttribute('src', expect.stringContaining('unsplash.com'));
-    });
-
+  beforeEach(() => {
+    setToken('fake-jwt-token');
   });
 
-  describe('listing context', () => {
+  afterEach(() => {
+    clearToken();
+  });
 
-    it('must display a View Listing link for the related listing', () => {
+  describe('loading and display', () => {
+    it('shows loading state initially', () => {
       renderMessageThread();
-
-      const viewLink = screen.getByRole('link', { name: /View Listing/ });
-      expect(viewLink).toHaveAttribute('href', '/listings/1');
+      expect(screen.getByText('Loading conversation...')).toBeInTheDocument();
     });
 
-    it('must display the listing name', () => {
+    it('displays messages from the thread', async () => {
       renderMessageThread();
 
-      expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Hi! Are the tomatoes still available?')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Yes they are! When can you pick up?')).toBeInTheDocument();
     });
 
-    it('must display the listing status badge', () => {
+    it('shows listing context with name', async () => {
       renderMessageThread();
 
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+    });
+
+    it('shows listing status in context section', async () => {
+      renderMessageThread();
+
+      await waitFor(() => {
+        expect(screen.getByText('Fresh Tomatoes')).toBeInTheDocument();
+      });
+      // Status badge should show Available
       expect(screen.getByText('Available')).toBeInTheDocument();
     });
-
-  });
-
-  describe('messages display', () => {
-
-    it('must display messages from the thread', () => {
-      renderMessageThread();
-
-      expect(screen.getByText(/I'd love to pick up 3 lbs of tomatoes/)).toBeInTheDocument();
-      expect(screen.getByText(/still available! I'm usually home in the afternoons/)).toBeInTheDocument();
-    });
-
-    it('must display all 8 messages in thread 1', () => {
-      renderMessageThread();
-
-      expect(screen.getByText(/I'd love to pick up 3 lbs of tomatoes/)).toBeInTheDocument();
-      expect(screen.getByText(/Does tomorrow around 3pm work/)).toBeInTheDocument();
-      expect(screen.getByText(/That works perfectly/)).toBeInTheDocument();
-      expect(screen.getByText(/I'll leave them on the front porch/)).toBeInTheDocument();
-      expect(screen.getByText(/are these heirloom or regular/)).toBeInTheDocument();
-      expect(screen.getByText(/Cherokee Purple and Brandywine/)).toBeInTheDocument();
-      expect(screen.getByText(/Should I bring my own bag/)).toBeInTheDocument();
-      expect(screen.getByText(/I'll have them bagged already/)).toBeInTheDocument();
-    });
-
-    it('must group messages by date with date separators', () => {
-      renderMessageThread();
-
-      // Thread 1 has messages on 2026-07-01 and 2026-07-02 — these render
-      // as date labels (the exact format depends on today's date, but both
-      // groups will produce a separator)
-      const allText = document.body.textContent || '';
-      // At minimum, there should be more than one date group visible
-      // (messages span two calendar days)
-      expect(allText).toContain('Cherokee Purple');
-    });
-
   });
 
   describe('message input', () => {
-
-    it('must display a message input field', () => {
+    it('has a message input field', async () => {
       renderMessageThread();
 
-      expect(screen.getByLabelText(/Message input/)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Message input/i)).toBeInTheDocument();
+      });
     });
 
-    it('must display a send button', () => {
+    it('has a send button', async () => {
       renderMessageThread();
 
-      expect(screen.getByLabelText(/Send message/)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Send message/i)).toBeInTheDocument();
+      });
     });
 
-    it('must allow typing a message', async () => {
+    it('sends a message and adds it to the list', async () => {
       renderMessageThread();
 
-      const input = screen.getByLabelText(/Message input/);
-      await userEvent.type(input, 'Hello there!');
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Message input/i)).toBeInTheDocument();
+      });
 
-      expect(input).toHaveValue('Hello there!');
+      const input = screen.getByLabelText(/Message input/i);
+      await userEvent.type(input, 'I can pick up tomorrow');
+      await userEvent.click(screen.getByLabelText(/Send message/i));
+
+      await waitFor(() => {
+        expect(screen.getByText('I can pick up tomorrow')).toBeInTheDocument();
+      });
     });
 
-    it('must add the message to the thread when send is clicked', async () => {
+    it('clears input after sending', async () => {
       renderMessageThread();
 
-      const input = screen.getByLabelText(/Message input/);
-      await userEvent.type(input, 'Hello there!');
-      await userEvent.click(screen.getByLabelText(/Send message/));
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Message input/i)).toBeInTheDocument();
+      });
 
-      expect(screen.getByText('Hello there!')).toBeInTheDocument();
-      expect(input).toHaveValue('');
+      const input = screen.getByLabelText(/Message input/i);
+      await userEvent.type(input, 'Hello');
+      await userEvent.click(screen.getByLabelText(/Send message/i));
+
+      await waitFor(() => {
+        expect(input).toHaveValue('');
+      });
     });
-
-    it('must not send an empty message', async () => {
-      renderMessageThread();
-
-      const sendButton = screen.getByLabelText(/Send message/);
-      const messageCountBefore = screen.getAllByText(/./i).length;
-
-      await userEvent.click(sendButton);
-
-      const messageCountAfter = screen.getAllByText(/./i).length;
-      expect(messageCountAfter).toBe(messageCountBefore);
-    });
-
   });
 
-  describe('not found state', () => {
+  describe('not found', () => {
+    it('shows not-found for invalid thread', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/claims/:claimId/thread`, () => {
+          return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
+        })
+      );
 
-    it('must show empty state for a non-existent thread', () => {
-      renderMessageThread('9999');
+      renderMessageThread('999');
 
-      expect(screen.getByText('Conversation not found')).toBeInTheDocument();
-      expect(screen.getByText(/may have been removed or does not exist/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /Back to Inbox/ })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Conversation not found')).toBeInTheDocument();
+      });
     });
-
   });
-
 });

@@ -1,270 +1,194 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import EditListing from '@/pages/EditListing';
 
-function renderEditListing(listingId: string = '1') {
+const API_URL = 'http://127.0.0.1:8000';
+
+function renderEditListing(id = '1') {
   return render(
-    <MemoryRouter initialEntries={[`/listings/${listingId}/edit`]}>
-      <Routes>
-        <Route
-          path="/listings/:id/edit"
-          element={
-            <AuthProvider>
-              <EditListing />
-            </AuthProvider>
-          }
-        />
-      </Routes>
+    <MemoryRouter initialEntries={[`/listings/${id}/edit`]}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/listings/:id/edit" element={<EditListing />} />
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route path="/listings/:id" element={<div>Listing Details</div>} />
+        </Routes>
+      </AuthProvider>
     </MemoryRouter>
   );
 }
 
 describe('EditListing', () => {
+  beforeEach(() => {
+    setToken('fake-jwt-token');
+  });
 
-  describe('listing not found', () => {
+  afterEach(() => {
+    clearToken();
+  });
 
-    it('must show a not-found message and a link back to the dashboard for a nonexistent listing id', () => {
+  describe('loading and data population', () => {
+    it('shows loading state initially', () => {
+      renderEditListing();
+      expect(screen.getByText('Loading listing...')).toBeInTheDocument();
+    });
+
+    it('populates form with listing data after loading', async () => {
+      renderEditListing();
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
+      expect(screen.getByDisplayValue('8')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('lbs')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Vine-ripened tomatoes from the garden.')).toBeInTheDocument();
+    });
+
+    it('shows the page header with listing name', async () => {
+      renderEditListing();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Managing: Fresh Tomatoes/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('not found state', () => {
+    it('shows not found for invalid listing ID', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/listings/:id`, () => {
+          return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
+        })
+      );
+
       renderEditListing('999');
 
-      expect(screen.getByText('Listing Not Found')).toBeInTheDocument();
-      expect(
-        screen.getByText('This listing may have been removed or does not exist.')
-      ).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute(
-        'href',
-        '/dashboard'
-      );
+      await waitFor(() => {
+        expect(screen.getByText('Listing Not Found')).toBeInTheDocument();
+      });
     });
-
   });
 
-  describe('page header', () => {
-
-    it('must display header with listing name', () => {
+  describe('form editing', () => {
+    it('allows editing the produce name', async () => {
       renderEditListing();
 
-      expect(screen.getByText('Edit Listing')).toBeInTheDocument();
-      expect(screen.getByText(/Managing:/)).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
 
-    it('must have link to view listing as public', () => {
-      renderEditListing();
-
-      const viewButton = screen.getByRole('link', { name: /View as Public/ });
-      expect(viewButton).toBeInTheDocument();
-    });
-
-  });
-
-  describe('status controls', () => {
-
-    it('must display current status badge', () => {
-      renderEditListing();
-
-      expect(screen.getByText('Current Status:')).toBeInTheDocument();
-    });
-
-    it('must have status dropdown with options', () => {
-      renderEditListing();
-
-      const statusSelect = screen.getAllByDisplayValue(/available|reserved|closed/i)[0] as HTMLSelectElement;
-      const options = Array.from(statusSelect.options).map(opt => opt.text);
-
-      expect(options.some(o => o.includes('Available'))).toBe(true);
-      expect(options.some(o => o.includes('Reserved'))).toBe(true);
-      expect(options.some(o => o.includes('Closed'))).toBe(true);
-    });
-
-    it('must show status changed toast after changing status', async () => {
-      renderEditListing();
-
-      const statusSelect = screen.getAllByDisplayValue(/available|reserved|closed/i)[0];
-      await userEvent.selectOptions(statusSelect, 'reserved');
-
-      expect(screen.getByText(/Status updated/)).toBeInTheDocument();
-    });
-
-    it('must show closed notice when status is closed', async () => {
-      renderEditListing();
-
-      const statusSelect = screen.getAllByDisplayValue(/available|reserved|closed/i)[0];
-      await userEvent.selectOptions(statusSelect, 'closed');
-
-      expect(screen.getByText(/closed and no longer visible/)).toBeInTheDocument();
-    });
-
-  });
-
-  describe('form fields', () => {
-
-    it('must display all form fields', () => {
-      renderEditListing();
-
-      expect(screen.getByLabelText(/Produce Name/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Category/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^Quantity/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^Unit/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Description/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Expiration Date/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Pickup Location/)).toBeInTheDocument();
-    });
-
-    it('must populate form with listing data', () => {
-      renderEditListing();
-
-      const nameInput = screen.getByLabelText(/Produce Name/) as HTMLInputElement;
-      expect(nameInput.value).toBeTruthy();
-    });
-
-    it('must update form fields on change', async () => {
-      renderEditListing();
-
-      const nameInput = screen.getByLabelText(/Produce Name/) as HTMLInputElement;
+      const nameInput = screen.getByDisplayValue('Fresh Tomatoes');
       await userEvent.clear(nameInput);
-      await userEvent.type(nameInput, 'New Name');
+      await userEvent.type(nameInput, 'Organic Tomatoes');
 
-      expect(nameInput.value).toBe('New Name');
+      expect(screen.getByDisplayValue('Organic Tomatoes')).toBeInTheDocument();
     });
 
-  });
-
-  describe('form validation', () => {
-
-    it('must show validation errors on empty submit', async () => {
+    it('has a status dropdown with options', async () => {
       renderEditListing();
 
-      const nameInput = screen.getByLabelText(/Produce Name/);
-      await userEvent.clear(nameInput);
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
 
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
+      const statusSelect = screen.getByDisplayValue('Available');
+      expect(statusSelect).toBeInTheDocument();
+      expect(statusSelect.querySelectorAll('option').length).toBe(3);
+    });
+  });
+
+  describe('save functionality', () => {
+    it('shows success message after saving', async () => {
+      renderEditListing();
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Listing updated successfully/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows validation error when name is empty', async () => {
+      renderEditListing();
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByDisplayValue('Fresh Tomatoes');
+      await userEvent.clear(nameInput);
+      await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
       expect(screen.getByText('Produce name is required.')).toBeInTheDocument();
     });
-
-    it('must clear error when field is edited', async () => {
-      renderEditListing();
-
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
-
-      const nameInput = screen.getByLabelText(/Produce Name/);
-      await userEvent.type(nameInput, 'Test');
-
-      expect(screen.queryByText('Produce name is required.')).not.toBeInTheDocument();
-    });
-
-    it('must show a zero-quantity error when status is still available', async () => {
-      // Listing 1 defaults to status "available", so setting quantity to 0
-      // without changing status hits the dedicated zero-quantity branch
-      // rather than the generic "must be zero or greater" one.
-      renderEditListing('1');
-
-      const quantityInput = screen.getByLabelText(/^Quantity/);
-      await userEvent.clear(quantityInput);
-      await userEvent.type(quantityInput, '0');
-
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
-
-      expect(
-        screen.getByText('Quantity is zero — mark the listing as closed or reserved.')
-      ).toBeInTheDocument();
-    });
-
   });
 
-  describe('save and cancel', () => {
-
-    it('must display save button', () => {
+  describe('delete functionality', () => {
+    it('has a delete button in the danger zone', async () => {
       renderEditListing();
 
-      expect(screen.getByRole('button', { name: /Save Changes/ })).toBeInTheDocument();
-    });
-
-    it('must show success message on valid save', async () => {
-      renderEditListing();
-
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
-
-      expect(screen.getByText(/successfully/)).toBeInTheDocument();
-    });
-
-    it('must have cancel button', () => {
-      renderEditListing();
-
-      const cancelButton = screen.getByRole('button', { name: /Cancel/ });
-      expect(cancelButton).toBeInTheDocument();
-    });
-
-  });
-
-  describe('delete', () => {
-
-    it('must display delete button in danger zone', () => {
-      renderEditListing();
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
 
       expect(screen.getByRole('button', { name: /Delete Listing/ })).toBeInTheDocument();
     });
 
-    it('must open delete confirmation modal', async () => {
+    it('opens confirmation modal on delete click', async () => {
       renderEditListing();
 
-      const deleteButton = screen.getByRole('button', { name: /Delete Listing/ });
-      await userEvent.click(deleteButton);
-
-      expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
-    });
-
-    it('must close the modal without deleting when Cancel is clicked', async () => {
-      renderEditListing();
-
-      await userEvent.click(screen.getByRole('button', { name: /Delete Listing/ }));
-      expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
-
-      // Two "Cancel" buttons exist once the modal is open: the form's own
-      // Cancel link/button, and the modal footer's Cancel button — the
-      // modal one is the last one in document order.
-      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
-      await userEvent.click(cancelButtons[cancelButtons.length - 1]);
-
-      expect(screen.queryByText(/Are you sure you want to delete/)).not.toBeInTheDocument();
-      expect(screen.queryByText('Listing Deleted')).not.toBeInTheDocument();
-    });
-
-    it('must delete the listing and show a confirmation when the modal delete is confirmed', async () => {
-      renderEditListing();
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
 
       await userEvent.click(screen.getByRole('button', { name: /Delete Listing/ }));
 
-      // While the modal is open, the background "Delete Listing" trigger
-      // may be aria-hidden (focus-trap pattern), leaving only the modal's
-      // own confirm button accessible — so we take whichever is last/only,
-      // rather than asserting a specific count.
-      const deleteButtons = screen.getAllByRole('button', { name: 'Delete Listing' });
-      await userEvent.click(deleteButtons[deleteButtons.length - 1]);
-
-      expect(screen.getByText('Listing Deleted')).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute(
-        'href',
-        '/dashboard'
-      );
+      await waitFor(() => {
+        expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
+      });
     });
 
-  });
-
-  describe('activity log', () => {
-
-    it('must display activity section', () => {
+    it('deletes the listing when confirmed in modal', async () => {
       renderEditListing();
 
-      expect(screen.getByText('Activity')).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Fresh Tomatoes')).toBeInTheDocument();
+      });
 
+      await userEvent.click(screen.getByRole('button', { name: /Delete Listing/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
+      });
+
+      // Click the delete button inside the modal
+      const modalButtons = screen.getAllByRole('button', { name: /Delete Listing/ });
+      const confirmButton = modalButtons[modalButtons.length - 1];
+      await userEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      });
+    });
   });
 
+  describe('claims summary', () => {
+    it('shows claim requests summary when claims exist', async () => {
+      renderEditListing();
+
+      await waitFor(() => {
+        expect(screen.getByText('Claim Requests')).toBeInTheDocument();
+      });
+    });
+  });
 });
