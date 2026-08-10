@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from api.deps import get_current_user
+from api.routers.reviews import get_user_rating
 from core.auth import hash_password, verify_password, create_access_tkn
 
 from models import Photo, User
@@ -70,8 +71,14 @@ def login_user(
 @router.get("/me", response_model=GetUser)
 def get_me(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    return current_user
+    response = GetUser.model_validate(current_user)
+    response.rating, response.review_count = get_user_rating(db, current_user.user_id)
+    if current_user.profile_photo_id:
+        photo = db.query(Photo).filter(Photo.photo_id == current_user.profile_photo_id).first()
+        response.profile_photo_url = photo.image_link if photo else None
+    return response
 
 
 @router.get("/users/{user_id}", response_model=GetUser)
@@ -85,7 +92,12 @@ def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    return user
+    response = GetUser.model_validate(user)
+    response.rating, response.review_count = get_user_rating(db, user_id)
+    if user.profile_photo_id:
+        photo = db.query(Photo).filter(Photo.photo_id == user.profile_photo_id).first()
+        response.profile_photo_url = photo.image_link if photo else None
+    return response
 
 
 @router.put("/me", response_model=GetUser)
@@ -110,4 +122,10 @@ def update_me(
 
     db.commit()
     db.refresh(current_user)
-    return current_user
+
+    response = GetUser.model_validate(current_user)
+    response.rating, response.review_count = get_user_rating(db, current_user.user_id)
+    if current_user.profile_photo_id:
+        photo = db.query(Photo).filter(Photo.photo_id == current_user.profile_photo_id).first()
+        response.profile_photo_url = photo.image_link if photo else None
+    return response

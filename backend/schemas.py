@@ -1,6 +1,29 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import date, datetime
 
+from typing import Literal
+
+# Single source of truth for allowed values — used by Pydantic schemas and SQLAlchemy CHECK constraints
+DIETARY_RESTRICTION_VALUES = (
+    "vegan", "vegetarian", "gluten_free",
+    "nut_free", "halal", "kosher", "other",
+)
+
+CATEGORY_VALUES = (
+    "fruits", "vegetables", "dairy", "grains",
+    "meat", "seafood", "baked_goods", "other",
+)
+
+DietaryRestriction = Literal[
+    "vegan", "vegetarian", "gluten_free",
+    "nut_free", "halal", "kosher", "other"
+]
+
+Category = Literal[
+    "fruits", "vegetables", "dairy", "grains",
+    "meat", "seafood", "baked_goods", "other"
+]
+
 class RegisterUser(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -22,8 +45,8 @@ class GetUser(BaseModel):
     email: EmailStr
     profile_photo_id: int | None = None
     profile_photo_url: str | None = None
-    location: str | None = None
     rating: float | None = None
+    review_count: int = 0
 
 
 class UpdateUser(BaseModel):
@@ -37,6 +60,8 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+# --- Listing schemas ---
+
 class CreateListing(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
@@ -49,7 +74,8 @@ class CreateListing(BaseModel):
     unit: str | None = None
     expiration_date: date | None = None
     pickup_location: str | None = None
-    category: str | None = None
+    category: Category | None = None
+    dietary_restrictions: list[DietaryRestriction] = []
     community_id: int | None = None
     photo_id: int | None = None
 
@@ -59,7 +85,6 @@ class PhotoResponse(BaseModel):
 
     photo_id: int
     image_link: str
-
 
 class ListingResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -76,6 +101,7 @@ class ListingResponse(BaseModel):
     date_posted: datetime | None
     pickup_location: str | None
     category: str | None
+    dietary_restrictions: list[DietaryRestriction] = []
     photo_url: str | None = None
 
 class ListingUpdate(BaseModel):
@@ -89,10 +115,12 @@ class ListingUpdate(BaseModel):
     quantity: int | None = None
     unit: str | None = None
     status: str | None = None
-    category: str | None = None
+    category: Category | None = None
+    dietary_restrictions: list[DietaryRestriction] | None = None
     expiration_date: date | None = None
     pickup_location: str | None = None
 
+# --- Claims schemas ---
 
 class CreateClaim(BaseModel):
     model_config = ConfigDict(
@@ -112,6 +140,24 @@ class ClaimResponse(BaseModel):
     status: str | None
     request_date: datetime | None
     closed_date: datetime | None
+
+
+class ClaimHistoryResponse(BaseModel):
+    request_id: int
+    listing_id: int | None
+    listing_name: str
+    listing_photo_url: str | None = None
+    quantity_requested: int
+    status: str | None
+    request_date: datetime | None
+    closed_date: datetime | None
+    role: str
+    other_user_id: int | None
+    other_user_name: str | None
+    can_review: bool
+    already_reviewed: bool
+
+# --- Communities schemas ---
 
 class CreateCommunity(BaseModel):
     model_config = ConfigDict(
@@ -137,7 +183,6 @@ class CommunityResponse(BaseModel):
     member_count: int
     banner_url: str | None = None
 
-# class for listing communities in GET /v1/communities
 class CommunitiesListResponse(BaseModel):    
     my_communities: list[CommunityResponse]
     public_communities: list[CommunityResponse]
@@ -243,3 +288,28 @@ class JoinRequestResponse(BaseModel):
     user_id: int
     status: str | None
     request_date: datetime | None
+
+class CreateReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rating: int = Field(..., ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=2000)
+
+
+class ReviewResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    review_id: int
+    claim_request_id: int | None
+    reviewer_user_id: int | None
+    reviewer_name: str | None = None
+    reviewed_user_id: int | None
+    rating: int
+    comment: str | None
+    review_date: datetime | None
+
+
+class UserReviewsResponse(BaseModel):
+    average_rating: float | None
+    review_count: int
+    reviews: list[ReviewResponse]

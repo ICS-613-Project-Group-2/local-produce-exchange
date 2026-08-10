@@ -8,6 +8,7 @@ from database import get_db
 from api.deps import get_current_user
 from models import ClaimRequest, Listing, Message, MessageThread, User
 from schemas import CreateMessage, MessageResponse, MessageThreadResponse
+from api.routers.notifications import create_notification
 
 router = APIRouter()
 
@@ -195,6 +196,19 @@ def post_message(
     )
 
     db.add(message)
+    db.flush()
+
+    # notify the other participant about the new message
+    recipient_id = listing.user_id if current_user.user_id == claim.requester_user_id else claim.requester_user_id
+    create_notification(
+        db,
+        user_id=recipient_id,
+        content=f"New message from {current_user.name} about \"{listing.name}\"",
+        type="message",
+        message_id=message.message_id,
+        claim_request_id=claim.request_id,
+    )
+
     db.commit()
     db.refresh(message)
     return message

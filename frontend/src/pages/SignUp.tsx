@@ -233,8 +233,14 @@ export default function SignUp() {
                 </div>
               </FormField>
 
-              <Button variant="primary" type="submit" size="lg">
-                Create Account
+              {submitError && (
+                <div className="auth-page__submit-error" role="alert">
+                  {submitError}
+                </div>
+              )}
+
+              <Button variant="primary" type="submit" size="lg" disabled={submitting}>
+                {submitting ? "Creating Account…" : "Create Account"}
               </Button>
             </form>
 
