@@ -104,3 +104,20 @@ describe('getMe', () => {
     await expect(getMe()).rejects.toThrow(ApiError);
   });
 });
+
+describe('204 No Content responses', () => {
+
+  afterEach(() => {
+    clearToken();
+  });
+
+  it('must resolve to undefined without parsing a body', async () => {
+    server.use(
+      http.get(`${API_URL}/v1/me`, () => new HttpResponse(null, { status: 204 }))
+    );
+    setToken('fake-jwt-token');
+
+    await expect(getMe()).resolves.toBeUndefined();
+  });
+
+});

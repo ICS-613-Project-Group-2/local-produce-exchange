@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,6 +16,10 @@ function renderMessages() {
 }
 
 describe('Messages', () => {
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   describe('page header', () => {
 
@@ -42,47 +46,69 @@ describe('Messages', () => {
       expect(searchInput).toBeInTheDocument();
     });
 
-    it('must filter threads by name', async () => {
+    it('must filter threads by the other participant\'s name', async () => {
+      renderMessages();
+
+      // User 1's threads: thread 1 (Oliver Lee, re: Fresh Tomatoes),
+      // thread 3 (Glen Kim, re: Strawberry Jam), thread 4 (Malia Nakamura, re: Lilikoi).
+      const searchInput = screen.getByPlaceholderText(/Search by name or listing/) as HTMLInputElement;
+      // Typed with a trailing Enter so this works whether SearchBar filters on every
+      // keystroke or only on submit.
+      await userEvent.type(searchInput, 'Oliver{enter}');
+
+      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
+      expect(screen.queryByText('Glen K.')).not.toBeInTheDocument();
+      expect(screen.queryByText('Malia N.')).not.toBeInTheDocument();
+    });
+
+    it('must filter threads by listing name', async () => {
       renderMessages();
 
       const searchInput = screen.getByPlaceholderText(/Search by name or listing/) as HTMLInputElement;
-      await userEvent.type(searchInput, 'John');
+      await userEvent.type(searchInput, 'Lilikoi{enter}');
 
-      // After typing search query, list should be filtered
-      expect(searchInput.value).toBe('John');
+      expect(screen.getByText('Malia N.')).toBeInTheDocument();
+      expect(screen.queryByText('Oliver L.')).not.toBeInTheDocument();
+      expect(screen.queryByText('Glen K.')).not.toBeInTheDocument();
+    });
+
+    it('must show empty state when the search matches nothing', async () => {
+      renderMessages();
+
+      const searchInput = screen.getByPlaceholderText(/Search by name or listing/);
+      await userEvent.type(searchInput, 'zzzzzzzzzzzzzzzzzzzzz{enter}');
+
+      expect(screen.getByText('No messages yet')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Browse Listings/ })).toHaveAttribute('href', '/browse');
     });
 
   });
 
   describe('thread list', () => {
 
-    it('must display recent and older sections', () => {
+    it('must show both a Recent and an Older section when threads span both windows', () => {
+      // Pin "now" so thread 1 (last message 2026-07-02T09:30) and thread 4
+      // (last message 2026-07-02T12:10) fall inside the 7-day "Recent" window,
+      // while thread 3 (last message 2026-06-21T17:15) falls outside it —
+      // rather than depending on the real wall-clock date.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-07-03T00:00:00'));
+
       renderMessages();
 
-      const recentSection = screen.queryByText('Recent');
-      const olderSection = screen.queryByText('Older');
-
-      // At least one section should exist if there are threads
-      if (recentSection || olderSection) {
-        expect(recentSection || olderSection).toBeInTheDocument();
-      }
+      expect(screen.getByText('Recent')).toBeInTheDocument();
+      expect(screen.getByText('Older')).toBeInTheDocument();
+      // Oliver Lee's thread (1) should be in Recent.
+      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
+      // Glen Kim's thread (3) should be in Older.
+      expect(screen.getByText('Glen K.')).toBeInTheDocument();
     });
 
     it('must display thread cards with participant info', () => {
       renderMessages();
 
       const threadLinks = screen.queryAllByRole('link');
-      // If there are threads, links should be rendered
-      if (threadLinks.length > 0) {
-        expect(threadLinks.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('must show empty state when no messages', async () => {
-      renderMessages();
-
-      const searchInput = screen.getByPlaceholderText(/Search by name or listing/);
-      await userEvent.type(searchInput, 'zzzzzzzzzzzzzzzzzzzzz');
+      expect(threadLinks.length).toBeGreaterThan(0);
     });
 
   });
@@ -93,29 +119,10 @@ describe('Messages', () => {
       renderMessages();
 
       const threadLinks = screen.queryAllByRole('link');
-      // Check if at least some links to message threads exist
-      if (threadLinks.length > 0) {
-        const messageThreadLinks = threadLinks.filter(link =>
-          link.getAttribute('href')?.startsWith('/messages/')
-        );
-        if (messageThreadLinks.length > 0) {
-          expect(messageThreadLinks.length).toBeGreaterThan(0);
-        }
-      }
-    });
-
-  });
-
-  describe('browse fallback', () => {
-
-    it('must have link to browse listings in empty state', () => {
-      // This component shows a browse link in empty state
-      // We can't easily trigger empty state without manipulating mock data
-      const emptyStateLink = screen.queryByRole('link', { name: /Browse Listings/ });
-      // Link may or may not be visible depending on data
-      if (emptyStateLink) {
-        expect(emptyStateLink).toHaveAttribute('href', '/browse');
-      }
+      const messageThreadLinks = threadLinks.filter(link =>
+        link.getAttribute('href')?.startsWith('/messages/')
+      );
+      expect(messageThreadLinks.length).toBeGreaterThan(0);
     });
 
   });

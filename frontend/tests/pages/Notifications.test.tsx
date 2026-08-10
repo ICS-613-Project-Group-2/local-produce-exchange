@@ -31,6 +31,13 @@ describe('Notifications', () => {
       expect(screen.getByText(/updates about your listings/i)).toBeInTheDocument();
     });
 
+    it('must show the unread count in the title', () => {
+      // User 1 has 3 unread notifications in the seed data (ids 1, 2, 5).
+      renderNotifications();
+
+      expect(screen.getByText('Notifications (3 unread)')).toBeInTheDocument();
+    });
+
   });
 
   describe('filter tabs', () => {
@@ -52,87 +59,101 @@ describe('Notifications', () => {
       await userEvent.click(messagesFilter);
 
       expect(messagesFilter).toHaveClass('notifications__filter--active');
+      // Only notification 5 (type "message") should remain for user 1.
+      expect(screen.getByText(/new message from Oliver Lee/)).toBeInTheDocument();
+      expect(screen.queryByText(/Fresh Tomatoes listing/)).not.toBeInTheDocument();
     });
 
   });
 
   describe('notifications list', () => {
 
-    it('must display notifications', () => {
-      renderNotifications();
-
-      const notificationContent = screen.queryAllByText(/listing|message|claim|community/i);
-      // Check if notifications or empty state is displayed
-      const emptyState = screen.queryByText(/No notifications yet/);
-
-      if (notificationContent.length === 0) {
-        expect(emptyState).toBeInTheDocument();
-      }
-    });
-
-    it('must group notifications by date', () => {
+    it('must display notifications grouped by date', () => {
       renderNotifications();
 
       const todayGroup = screen.queryByText('Today');
       const yesterdayGroup = screen.queryByText('Yesterday');
       const earlierGroup = screen.queryByText('Earlier');
 
-      // At least one group should exist if there are notifications
       const groups = [todayGroup, yesterdayGroup, earlierGroup].filter(g => g !== null);
-      if (groups.length > 0) {
-        expect(groups.length).toBeGreaterThan(0);
-      }
+      expect(groups.length).toBeGreaterThan(0);
     });
 
   });
 
   describe('notifications actions', () => {
 
-    it('must display mark all as read button when unread exists', async () => {
+    it('must display the mark-all-as-read button when unread notifications exist', () => {
       renderNotifications();
 
-      const markAllButton = screen.queryByRole('button', { name: /Mark all as read/ });
-      if (markAllButton) {
-        expect(markAllButton).toBeInTheDocument();
-      }
+      expect(screen.getByRole('button', { name: /Mark all as read/ })).toBeInTheDocument();
     });
 
-    it('must dismiss notification when x clicked', async () => {
+    it('must mark all notifications as read and hide the button when clicked', async () => {
       renderNotifications();
 
-      const dismissButtons = screen.queryAllByLabelText(/Dismiss notification/);
-      if (dismissButtons.length > 0) {
-        await userEvent.click(dismissButtons[0]);
+      expect(screen.getAllByLabelText('Unread')).toHaveLength(3);
 
-        // After dismiss, one less dismiss button should exist
-        const remainingButtons = screen.queryAllByLabelText(/Dismiss notification/);
-        expect(remainingButtons.length).toBeLessThan(dismissButtons.length);
-      }
+      await userEvent.click(screen.getByRole('button', { name: /Mark all as read/ }));
+
+      expect(screen.queryByRole('button', { name: /Mark all as read/ })).not.toBeInTheDocument();
+      expect(screen.queryAllByLabelText('Unread')).toHaveLength(0);
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
+    });
+
+    it('must mark a single notification as read when its link is clicked', async () => {
+      renderNotifications();
+
+      const unreadDotsBefore = screen.getAllByLabelText('Unread');
+      expect(unreadDotsBefore).toHaveLength(3);
+
+      const links = screen.getAllByRole('link');
+      await userEvent.click(links[0]);
+
+      expect(screen.queryAllByLabelText('Unread')).toHaveLength(unreadDotsBefore.length - 1);
+    });
+
+    it('must dismiss a notification when its × button is clicked', async () => {
+      renderNotifications();
+
+      const dismissButtons = screen.getAllByLabelText(/Dismiss notification/);
+      const countBefore = dismissButtons.length;
+
+      await userEvent.click(dismissButtons[0]);
+
+      expect(screen.getAllByLabelText(/Dismiss notification/)).toHaveLength(countBefore - 1);
     });
 
   });
 
   describe('notification links', () => {
 
-    it('must have links to notification destinations', () => {
+    it('must link each notification to its type-based destination', () => {
       renderNotifications();
 
-      const links = screen.queryAllByRole('link');
-      // Links may or may not exist depending on notification types
-      if (links.length > 0) {
-        expect(links.length).toBeGreaterThan(0);
-      }
+      const links = screen.getAllByRole('link');
+      expect(links.length).toBeGreaterThan(0);
+      // "Oliver Lee requested 3 lbs..." is a "claim" type notification.
+      const claimLink = screen.getByText('Oliver Lee requested 3 lbs of your Fresh Tomatoes listing.').closest('a');
+      expect(claimLink).toHaveAttribute('href', '/history');
     });
 
   });
 
   describe('empty state', () => {
 
-    it('must display empty state when no notifications', () => {
+    it('must show the empty state when a filter matches nothing', async () => {
       renderNotifications();
 
-      const emptyState = screen.queryByText(/No notifications yet/);
-      // Empty state may or may not be visible depending on data
+      // Dismiss every notification, then the "no notifications" empty state
+      // should render regardless of which filter tab is active.
+      let dismissButtons = screen.queryAllByLabelText(/Dismiss notification/);
+      while (dismissButtons.length > 0) {
+        await userEvent.click(dismissButtons[0]);
+        dismissButtons = screen.queryAllByLabelText(/Dismiss notification/);
+      }
+
+      expect(screen.getByText('No notifications yet')).toBeInTheDocument();
     });
 
   });

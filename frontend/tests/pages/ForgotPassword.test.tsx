@@ -46,14 +46,14 @@ describe('ForgotPassword', () => {
       renderForgotPassword();
 
       const emailInput = screen.getByLabelText(/Email/) as HTMLInputElement;
-      await userEvent.type(emailInput, 'invalid-email');
+      // Valid per the native type="email" check (HTML doesn't require a dot),
+      // but fails the stricter regex in handleSubmit.
+      await userEvent.type(emailInput, 'user@example');
 
-      const submitButton = screen.getByRole('button', { name: /Send Reset Link/ });
-      await userEvent.click(submitButton);
+      await userEvent.click(screen.getByRole('button', { name: /Send Reset Link/ }));
 
-      // If validation error occurred, form should still be visible (not submitted)
-      expect(screen.getByText('Reset your password')).toBeInTheDocument();
-      expect(emailInput.value).toBe('invalid-email');
+      expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
+      expect(screen.queryByText('Check your email 📧')).not.toBeInTheDocument();
     });
 
     it('must clear error when user types in field', async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -122,4 +122,16 @@ describe('AuthProvider', () => {                                        // Test 
     });
     expect(localStorage.getItem('greenbeans_access_token')).toBeNull();
   });
+});
+
+describe('useAuth', () => {
+
+  it('must throw when used outside of an AuthProvider', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() => render(<AuthConsumer />)).toThrow('context must be set');
+
+    errorSpy.mockRestore();
+  });
+
 });

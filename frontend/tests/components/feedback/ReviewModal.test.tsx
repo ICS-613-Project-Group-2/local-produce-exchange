@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ReviewModal from '@/components/feedback/ReviewModal';
 
@@ -42,6 +42,22 @@ describe('ReviewModal', () => {                                          // Test
     await userEvent.click(screen.getByRole('button', { name: '3 stars' }));
 
     expect(screen.getByText('3/5')).toBeInTheDocument();
+  });
+
+  it('must highlight stars up to the hovered star, and un-highlight them on mouse leave', async () => {
+    renderReviewModal();
+
+    const star3 = screen.getByRole('button', { name: '3 stars' });
+    await userEvent.hover(star3);
+    expect(star3).toHaveClass('review-modal__star--filled');
+
+    // Firing the mouseleave DOM event directly on star3, rather than relying
+    // on userEvent to infer a pointer transition to a sibling element (which
+    // proved unreliable here) or to document.body (blocked by the modal's
+    // pointer-events: none overlay while open).
+    fireEvent.mouseLeave(star3);
+
+    expect(star3).not.toHaveClass('review-modal__star--filled');
   });
 
   it('must show an error when submitting without selecting a rating', async () => {
@@ -109,6 +125,39 @@ describe('ReviewModal', () => {                                          // Test
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 
     expect(handleOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('must reset rating, comment, and error after the close animation delay elapses', () => {
+    // onOpenChange here is a no-op stub, so the component stays mounted and
+    // "open" for the rest of the test — which lets us observe handleClose's
+    // deferred setTimeout reset directly, without needing to re-open anything.
+    // Using fireEvent (synchronous) rather than userEvent here, since mixing
+    // userEvent's internal async delays with fake timers can deadlock.
+    vi.useFakeTimers();
+
+    renderReviewModal();
+
+    fireEvent.click(screen.getByRole('button', { name: '4 stars' }));
+    fireEvent.change(screen.getByPlaceholderText(/share your experience/i), {
+      target: { value: 'Loved it' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Before the 200ms timeout fires, the previous selections are still visible.
+    expect(screen.getByText('4/5')).toBeInTheDocument();
+
+    // vi.advanceTimersByTime runs the setTimeout callback synchronously but
+    // outside of React's act(), so the resulting setState calls need to be
+    // explicitly wrapped to flush and re-render.
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByText('Select a rating')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/share your experience/i)).toHaveValue('');
+
+    vi.useRealTimers();
   });
 
   it('must not render its content when open is false', () => {

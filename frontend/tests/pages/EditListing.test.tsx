@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
@@ -23,6 +23,23 @@ function renderEditListing(listingId: string = '1') {
 }
 
 describe('EditListing', () => {
+
+  describe('listing not found', () => {
+
+    it('must show a not-found message and a link back to the dashboard for a nonexistent listing id', () => {
+      renderEditListing('999');
+
+      expect(screen.getByText('Listing Not Found')).toBeInTheDocument();
+      expect(
+        screen.getByText('This listing may have been removed or does not exist.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute(
+        'href',
+        '/dashboard'
+      );
+    });
+
+  });
 
   describe('page header', () => {
 
@@ -140,6 +157,24 @@ describe('EditListing', () => {
       expect(screen.queryByText('Produce name is required.')).not.toBeInTheDocument();
     });
 
+    it('must show a zero-quantity error when status is still available', async () => {
+      // Listing 1 defaults to status "available", so setting quantity to 0
+      // without changing status hits the dedicated zero-quantity branch
+      // rather than the generic "must be zero or greater" one.
+      renderEditListing('1');
+
+      const quantityInput = screen.getByLabelText(/^Quantity/);
+      await userEvent.clear(quantityInput);
+      await userEvent.type(quantityInput, '0');
+
+      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
+      await userEvent.click(saveButton);
+
+      expect(
+        screen.getByText('Quantity is zero — mark the listing as closed or reserved.')
+      ).toBeInTheDocument();
+    });
+
   });
 
   describe('save and cancel', () => {
@@ -185,17 +220,39 @@ describe('EditListing', () => {
       expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
     });
 
-    it('must delete listing when confirmed', async () => {
+    it('must close the modal without deleting when Cancel is clicked', async () => {
       renderEditListing();
 
-      const deleteButton = screen.getByRole('button', { name: /Delete Listing/ });
-      await userEvent.click(deleteButton);
+      await userEvent.click(screen.getByRole('button', { name: /Delete Listing/ }));
+      expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
 
-      const allDeleteButtons = screen.getAllByRole('button', { name: /Delete Listing/ });
-      if (allDeleteButtons.length > 1) {
-        await userEvent.click(allDeleteButtons[allDeleteButtons.length - 1]);
-        expect(screen.getByText('Listing Deleted')).toBeInTheDocument();
-      }
+      // Two "Cancel" buttons exist once the modal is open: the form's own
+      // Cancel link/button, and the modal footer's Cancel button — the
+      // modal one is the last one in document order.
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      await userEvent.click(cancelButtons[cancelButtons.length - 1]);
+
+      expect(screen.queryByText(/Are you sure you want to delete/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Listing Deleted')).not.toBeInTheDocument();
+    });
+
+    it('must delete the listing and show a confirmation when the modal delete is confirmed', async () => {
+      renderEditListing();
+
+      await userEvent.click(screen.getByRole('button', { name: /Delete Listing/ }));
+
+      // While the modal is open, the background "Delete Listing" trigger
+      // may be aria-hidden (focus-trap pattern), leaving only the modal's
+      // own confirm button accessible — so we take whichever is last/only,
+      // rather than asserting a specific count.
+      const deleteButtons = screen.getAllByRole('button', { name: 'Delete Listing' });
+      await userEvent.click(deleteButtons[deleteButtons.length - 1]);
+
+      expect(screen.getByText('Listing Deleted')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute(
+        'href',
+        '/dashboard'
+      );
     });
 
   });
