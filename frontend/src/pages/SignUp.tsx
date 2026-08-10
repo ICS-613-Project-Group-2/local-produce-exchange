@@ -39,8 +39,8 @@ export default function SignUp() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [_submitting, setSubmitting] = useState(false);
-  const [_submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -233,8 +233,14 @@ export default function SignUp() {
                 </div>
               </FormField>
 
-              <Button variant="primary" type="submit" size="lg">
-                Create Account
+              {submitError && (
+                <div className="auth-page__submit-error" role="alert">
+                  {submitError}
+                </div>
+              )}
+
+              <Button variant="primary" type="submit" size="lg" disabled={submitting}>
+                {submitting ? "Creating Account…" : "Create Account"}
               </Button>
             </form>
 
