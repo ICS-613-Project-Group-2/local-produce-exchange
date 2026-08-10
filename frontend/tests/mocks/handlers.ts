@@ -38,4 +38,33 @@ export const handlers = [
       rating: null,
     });
   }),
+
+  http.get(`${API_URL}/v1/users/:userId/reviews`, () => {
+    return HttpResponse.json({
+      average_rating: 4.3,
+      review_count: 2,
+      reviews: [
+        {
+          review_id: 1,
+          claim_request_id: 1,
+          reviewer_user_id: 2,
+          reviewer_name: 'Oliver Lee',
+          reviewed_user_id: 1,
+          rating: 5,
+          comment: 'Tomatoes were super fresh! Easy pickup.',
+          review_date: '2026-07-01T10:00:00',
+        },
+        {
+          review_id: 2,
+          claim_request_id: 2,
+          reviewer_user_id: 3,
+          reviewer_name: 'Rose Johnson',
+          reviewed_user_id: 1,
+          rating: 4,
+          comment: 'Great communication, would trade again.',
+          review_date: '2026-06-28T14:00:00',
+        },
+      ],
+    });
+  }),
 ];

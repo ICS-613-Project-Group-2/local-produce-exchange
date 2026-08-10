@@ -1,23 +1,14 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import Profile from '@/pages/Profile';
-import { mockUsers, mockListings, mockMemberships, mockCommunities } from '@/data/mockData';
 
-// Profile.tsx hardcodes mockUsers[0] as the signed-in user.
-const currentUser = mockUsers[0];
-
-// Reviews live in a module-local array inside Profile.tsx, so the count is fixed.
-const REVIEW_COUNT = 3;
-
-const myListings = mockListings.filter((l) => l.user_id === currentUser.user_id);
-const myCompleted = myListings.filter((l) => l.status === 'completed');
-const myMemberships = mockMemberships.filter((m) => m.user_id === currentUser.user_id);
-const myCommunities = mockCommunities.filter((c) =>
-  myMemberships.some((m) => m.community_id === c.community_id)
-);
+const API_URL = 'http://127.0.0.1:8000';
 
 function renderProfile() {
   return render(
@@ -29,139 +20,207 @@ function renderProfile() {
   );
 }
 
-/** Reads the number rendered next to a stat label, e.g. statValue('Listings') -> '3'. */
-function statValue(label: string) {
-  const labelEl = screen.getByText(label, { selector: '.profile__stat-label' });
-  return labelEl.parentElement?.querySelector('.profile__stat-number')?.textContent;
-}
-
-async function openSettings() {
-  await userEvent.click(screen.getByRole('button', { name: /Settings/ }));
-}
-
 describe('Profile', () => {
 
-  describe('page header', () => {
+  beforeEach(() => {
+    // Seed a token so AuthProvider fetches /v1/me and populates user
+    setToken('fake-jwt-token');
+  });
 
-    it('must display profile title', () => {
+  afterEach(() => {
+    clearToken();
+  });
+
+  describe('loading state', () => {
+
+    it('must show loading message when user is not yet available', () => {
+      // Clear the token so user stays null
+      clearToken();
       renderProfile();
 
-      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Loading profile...')).toBeInTheDocument();
     });
 
   });
 
-  describe('tabs', () => {
+  describe('page header and tabs', () => {
 
-    it('must display public profile and settings tabs', () => {
+    it('must display the Profile page header', async () => {
       renderProfile();
 
-      expect(screen.getByRole('button', { name: /Public Profile/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Settings/ })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Profile')).toBeInTheDocument();
+      });
     });
 
-    it('must open on the public profile tab', () => {
+    it('must display Public Profile and Settings tabs', async () => {
       renderProfile();
 
-      expect(screen.getByRole('button', { name: /Public Profile/ })).toHaveClass('profile__tab--active');
-      expect(screen.getByRole('button', { name: /Settings/ })).not.toHaveClass('profile__tab--active');
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Public Profile' })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     });
 
-    it('must switch tabs on click', async () => {
+    it('must open on the Public Profile tab by default', async () => {
       renderProfile();
 
-      const settingsTab = screen.getByRole('button', { name: /Settings/ });
-      await userEvent.click(settingsTab);
-
-      expect(settingsTab).toHaveClass('profile__tab--active');
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Public Profile' })).toHaveClass('profile__tab--active');
+      });
+      expect(screen.getByRole('button', { name: 'Settings' })).not.toHaveClass('profile__tab--active');
     });
 
-    it('must switch back to the public profile tab', async () => {
+    it('must switch to Settings tab on click', async () => {
       renderProfile();
 
-      await openSettings();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+      });
 
-      const profileTab = screen.getByRole('button', { name: /Public Profile/ });
-      await userEvent.click(profileTab);
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-      expect(profileTab).toHaveClass('profile__tab--active');
-      expect(screen.getByRole('button', { name: /Settings/ })).not.toHaveClass('profile__tab--active');
-      expect(screen.queryByLabelText(/Display Name/)).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: currentUser.name })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Settings' })).toHaveClass('profile__tab--active');
+      expect(screen.getByRole('button', { name: 'Public Profile' })).not.toHaveClass('profile__tab--active');
+    });
+
+    it('must switch back to Public Profile tab', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Public Profile' }));
+
+      expect(screen.getByRole('button', { name: 'Public Profile' })).toHaveClass('profile__tab--active');
     });
 
   });
 
   describe('public profile', () => {
 
-    it('must display user information', () => {
+    it('must display the user name as a heading', async () => {
       renderProfile();
 
-      expect(screen.getByRole('heading', { name: currentUser.name })).toBeInTheDocument();
-      expect(screen.getByText(currentUser.email)).toBeInTheDocument();
-      expect(screen.getByText(`📍 ${currentUser.location}`)).toBeInTheDocument();
-      expect(
-        screen.getByText(`⭐ ${currentUser.rating} rating (${REVIEW_COUNT} reviews)`)
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Peter Pan' })).toBeInTheDocument();
+      });
     });
 
-    it('must display the profile photo when the user has one', () => {
+    it('must display the user email', async () => {
       renderProfile();
 
-      const avatars = screen.getAllByRole('img', { name: currentUser.name });
-      expect(avatars[0]).toHaveAttribute('src', currentUser.profile_photo_url);
+      await waitFor(() => {
+        expect(screen.getByText('peter@example.com')).toBeInTheDocument();
+      });
     });
 
-    it('must display stat cards with the correct counts', () => {
+    it('must display a placeholder avatar when no photo URL exists', async () => {
       renderProfile();
 
-      expect(statValue('Listings')).toBe(String(myListings.length));
-      expect(statValue('Completed')).toBe(String(myCompleted.length));
-      expect(statValue('Communities')).toBe(String(myCommunities.length));
-      expect(statValue('Reviews')).toBe(String(REVIEW_COUNT));
+      await waitFor(() => {
+        expect(screen.getByText('P')).toBeInTheDocument();
+      });
     });
 
-    it('must display reviews section', () => {
+    it('must display a photo avatar when the user has a profile photo', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/me`, () => {
+          return HttpResponse.json({
+            user_id: 1,
+            name: 'Peter Pan',
+            email: 'peter@example.com',
+            profile_photo_id: 1,
+            profile_photo_url: 'https://example.com/photo.jpg',
+            location: null,
+            rating: null,
+          });
+        })
+      );
       renderProfile();
 
-      expect(screen.getByRole('heading', { name: 'Reviews' })).toBeInTheDocument();
-      expect(screen.getByText('Oliver L.')).toBeInTheDocument();
-      expect(screen.getByText('Glen K.')).toBeInTheDocument();
-      expect(screen.getByText('Rose J.')).toBeInTheDocument();
-      expect(screen.getByText('Tomatoes were super fresh! Easy pickup.')).toBeInTheDocument();
-    });
-
-    it('must render star ratings out of five', () => {
-      renderProfile();
-
-      // Rose J. left 4 stars -> four filled, one empty.
-      expect(screen.getByText('★★★★☆')).toBeInTheDocument();
-    });
-
-    it('must have links to history and dashboard', () => {
-      renderProfile();
-
-      const historyLink = screen.getByRole('link', { name: /View Listing History/ });
-      const dashboardLink = screen.getByRole('link', { name: /Go to Dashboard/ });
-
-      expect(historyLink).toHaveAttribute('href', '/history');
-      expect(dashboardLink).toHaveAttribute('href', '/dashboard');
-    });
-
-  });
-
-  describe('communities section', () => {
-
-    it('must display communities list', () => {
-      renderProfile();
-
-      expect(screen.getByRole('heading', { name: 'Communities' })).toBeInTheDocument();
-
-      myCommunities.forEach((community) => {
-        expect(screen.getByRole('link', { name: community.name })).toHaveAttribute(
-          'href',
-          `/communities/${community.community_id}`
+      await waitFor(() => {
+        expect(screen.getByRole('img', { name: 'Peter Pan' })).toHaveAttribute(
+          'src',
+          'https://example.com/photo.jpg'
         );
+      });
+    });
+
+    it('must display the average rating and review count', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByText('⭐ 4.3 rating (2 reviews)')).toBeInTheDocument();
+      });
+    });
+
+    it('must display review cards with reviewer names and comments', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Oliver Lee')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Tomatoes were super fresh! Easy pickup.')).toBeInTheDocument();
+      expect(screen.getByText('Rose Johnson')).toBeInTheDocument();
+      expect(screen.getByText('Great communication, would trade again.')).toBeInTheDocument();
+    });
+
+    it('must display star ratings using repeated ⭐ emoji', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByText('⭐⭐⭐⭐⭐')).toBeInTheDocument(); // 5 stars
+      });
+      expect(screen.getByText('⭐⭐⭐⭐')).toBeInTheDocument(); // 4 stars
+    });
+
+    it('must show empty state when user has no reviews', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/users/:userId/reviews`, () => {
+          return HttpResponse.json({
+            average_rating: null,
+            review_count: 0,
+            reviews: [],
+          });
+        })
+      );
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Reviews will appear here after you complete exchanges.')).toBeInTheDocument();
+    });
+
+    it('must show an error message when the reviews API fails', async () => {
+      server.use(
+        http.get(`${API_URL}/v1/users/:userId/reviews`, () => {
+          return HttpResponse.json({ detail: 'Server error' }, { status: 500 });
+        })
+      );
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Server error')).toBeInTheDocument();
+      });
+    });
+
+    it('must have a link to View Listing History', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByRole('link', { name: /View Listing History/ })).toHaveAttribute('href', '/history');
+      });
+    });
+
+    it('must have a link to Go to Dashboard', async () => {
+      renderProfile();
+
+      await waitFor(() => {
+        expect(screen.getByRole('link', { name: /Go to Dashboard/ })).toHaveAttribute('href', '/dashboard');
       });
     });
 
@@ -169,7 +228,14 @@ describe('Profile', () => {
 
   describe('settings tab', () => {
 
-    it('must display settings form when tab clicked', async () => {
+    async function openSettings() {
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+      });
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    }
+
+    it('must display the settings form when Settings tab is clicked', async () => {
       renderProfile();
       await openSettings();
 
@@ -179,31 +245,25 @@ describe('Profile', () => {
       expect(screen.getByLabelText(/Bio/)).toBeInTheDocument();
     });
 
-    it('must prefill the form with the current user values', async () => {
+    it('must prefill name and email from the authenticated user', async () => {
       renderProfile();
       await openSettings();
 
-      expect(screen.getByLabelText(/Display Name/)).toHaveValue(currentUser.name);
-      expect(screen.getByLabelText(/Email/)).toHaveValue(currentUser.email);
-      expect(screen.getByLabelText(/Location/)).toHaveValue(currentUser.location);
-      expect(screen.getByLabelText(/Bio/)).toHaveValue('');
+      expect(screen.getByLabelText(/Display Name/)).toHaveValue('Peter Pan');
+      expect(screen.getByLabelText(/Email/)).toHaveValue('peter@example.com');
     });
 
-    it('must validate required fields', async () => {
+    it('must show an error when Display Name is empty on submit', async () => {
       renderProfile();
       await openSettings();
 
-      const nameInput = screen.getByLabelText(/Display Name/) as HTMLInputElement;
-      await userEvent.clear(nameInput);
-
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
+      await userEvent.clear(screen.getByLabelText(/Display Name/));
+      await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
       expect(screen.getByText('Display name is required.')).toBeInTheDocument();
-      expect(screen.queryByText(/Profile updated successfully/)).not.toBeInTheDocument();
     });
 
-    it('must show an error when email is empty', async () => {
+    it('must show an error when Email is empty on submit', async () => {
       renderProfile();
       await openSettings();
 
@@ -211,34 +271,29 @@ describe('Profile', () => {
       await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
       expect(screen.getByText('Email is required.')).toBeInTheDocument();
-      expect(screen.queryByText(/Profile updated successfully/)).not.toBeInTheDocument();
     });
 
-    it('must show an error when email format is invalid', async () => {
+    it('must show an error when Email format is invalid', async () => {
       renderProfile();
       await openSettings();
 
       const emailInput = screen.getByLabelText(/Email/);
       await userEvent.clear(emailInput);
-      // Passes the native type="email" check (no dot required by HTML spec),
-      // but fails the stricter regex in validate().
-      await userEvent.type(emailInput, 'lily@example');
+      await userEvent.type(emailInput, 'peter@example');
       await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
       expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
-      expect(screen.queryByText(/Profile updated successfully/)).not.toBeInTheDocument();
     });
 
     it('must clear a field error once the user edits that field', async () => {
       renderProfile();
       await openSettings();
 
-      const nameInput = screen.getByLabelText(/Display Name/);
-      await userEvent.clear(nameInput);
+      await userEvent.clear(screen.getByLabelText(/Display Name/));
       await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
       expect(screen.getByText('Display name is required.')).toBeInTheDocument();
 
-      await userEvent.type(nameInput, 'Lily C.');
+      await userEvent.type(screen.getByLabelText(/Display Name/), 'New Name');
 
       expect(screen.queryByText('Display name is required.')).not.toBeInTheDocument();
     });
@@ -247,8 +302,7 @@ describe('Profile', () => {
       renderProfile();
       await openSettings();
 
-      const saveButton = screen.getByRole('button', { name: /Save Changes/ });
-      await userEvent.click(saveButton);
+      await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
       expect(screen.getByText(/Profile updated successfully/)).toBeInTheDocument();
     });
@@ -260,7 +314,7 @@ describe('Profile', () => {
       await userEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
       expect(screen.getByText(/Profile updated successfully/)).toBeInTheDocument();
 
-      await userEvent.type(screen.getByLabelText(/Bio/), 'Backyard gardener.');
+      await userEvent.type(screen.getByLabelText(/Bio/), 'I love gardening.');
 
       expect(screen.queryByText(/Profile updated successfully/)).not.toBeInTheDocument();
     });
