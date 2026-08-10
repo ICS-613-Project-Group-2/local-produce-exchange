@@ -25,7 +25,6 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(Text, nullable=False)
     profile_photo_id = Column(Integer, ForeignKey("photos.photo_id"), nullable=True)
-    location = Column(String(150), nullable=True)
 
 class Community(Base):
     __tablename__ = "communities"
@@ -151,6 +150,8 @@ class Review(Base):
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
     review_date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    reviewer = relationship("User", foreign_keys=[reviewer_user_id])
 
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="reviews_rating_check"),
