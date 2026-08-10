@@ -82,7 +82,7 @@ class ListingResponse(BaseModel):
     date_posted: datetime | None
     pickup_location: str | None
     category: str | None
-    dietary_restrictions: list[str] = []
+    dietary_restrictions: list[DietaryRestriction] = []
     photo_url: str | None = None
 
 class ListingUpdate(BaseModel):
