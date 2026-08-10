@@ -21,7 +21,7 @@ class GetUser(BaseModel):
     name: str
     email: EmailStr
     profile_photo_id: int | None = None
-    #profile_photo_url: str | None = None
+    profile_photo_url: str | None = None
     rating: float | None = None
     review_count: int = 0
 

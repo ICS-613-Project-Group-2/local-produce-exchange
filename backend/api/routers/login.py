@@ -6,7 +6,7 @@ from api.deps import get_current_user
 from api.routers.reviews import get_user_rating
 from core.auth import hash_password, verify_password, create_access_tkn
 
-from models import User
+from models import Photo, User
 from schemas import RegisterUser, GetUser, LoginUser, TokenResponse
 
 
@@ -75,4 +75,7 @@ def get_me(
 ):
     response = GetUser.model_validate(current_user)
     response.rating, response.review_count = get_user_rating(db, current_user.user_id)
+    if current_user.profile_photo_id:
+        photo = db.query(Photo).filter(Photo.photo_id == current_user.profile_photo_id).first()
+        response.profile_photo_url = photo.image_link if photo else None
     return response

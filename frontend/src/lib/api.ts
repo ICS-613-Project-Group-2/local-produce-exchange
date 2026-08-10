@@ -192,7 +192,6 @@ export interface User {
   email: string;
   profile_photo_id: number | null;
   profile_photo_url: string | null;
-  location: string | null;
   rating: number | null;
   review_count: number;
 }
