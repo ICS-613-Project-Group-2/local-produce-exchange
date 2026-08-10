@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Community, Listing, ListingPhoto, Photo, User
-from schemas import CreateListing, ListingResponse, ListingUpdate
+from schemas import Category, CreateListing, DietaryRestriction, ListingResponse, ListingUpdate
 from api.deps import get_current_user
 
 
@@ -112,9 +112,9 @@ def create_listing(
 def list_listings(
     db: Session = Depends(get_db),
     community_id: int | None = None,
-    category: str | None = None,
+    category: Category | None = None,
     status_filter: str | None = None,
-    dietary_restriction: str | None = None,
+    dietary_restriction: DietaryRestriction | None = None,
     search: str | None = None,
 ):
     query = db.query(Listing)

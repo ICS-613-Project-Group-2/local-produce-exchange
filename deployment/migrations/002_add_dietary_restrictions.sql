@@ -19,3 +19,7 @@ ALTER TABLE listings
 ALTER TABLE listings
   ADD CONSTRAINT listings_dietary_restrictions_check
   CHECK (dietary_restrictions <@ ARRAY['vegan', 'vegetarian', 'gluten_free', 'nut_free', 'halal', 'kosher', 'other']::varchar[]);
+
+-- 5. Add GIN index for efficient array-contains queries on dietary_restrictions
+CREATE INDEX IF NOT EXISTS ix_listings_dietary_restrictions
+  ON listings USING GIN (dietary_restrictions);

@@ -3,6 +3,17 @@ from datetime import date, datetime
 
 from typing import Literal
 
+# Single source of truth for allowed values — used by Pydantic schemas and SQLAlchemy CHECK constraints
+DIETARY_RESTRICTION_VALUES = (
+    "vegan", "vegetarian", "gluten_free",
+    "nut_free", "halal", "kosher", "other",
+)
+
+CATEGORY_VALUES = (
+    "fruits", "vegetables", "dairy", "grains",
+    "meat", "seafood", "baked_goods", "other",
+)
+
 DietaryRestriction = Literal[
     "vegan", "vegetarian", "gluten_free",
     "nut_free", "halal", "kosher", "other"
