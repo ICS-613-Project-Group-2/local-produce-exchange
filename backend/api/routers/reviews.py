@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from api.deps import get_current_user
+from api.routers.notifications import create_notification
 from api.routers.claims import STATUS_COMPLETED
 from models import ClaimRequest, Listing, Review, User
 from schemas import CreateReview, ReviewResponse, UserReviewsResponse
@@ -158,6 +159,16 @@ def create_review(
         comment=review_form.comment,
     )
     db.add(review)
+
+    # notify the reviewed user that they received a review
+    create_notification(
+        db,
+        user_id=reviewed_user_id,
+        content=f"{current_user.name} left you a {review_form.rating}-star review.",
+        type="exchange",
+        claim_request_id=claim_id,
+    )
+
     db.commit()
     db.refresh(review)
 
