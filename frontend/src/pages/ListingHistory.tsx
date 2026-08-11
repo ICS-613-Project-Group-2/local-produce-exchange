@@ -94,6 +94,10 @@ export default function ListingHistory() {
     setReviewTarget(null);
   }
 
+  if (loading) {
+    return <div className="page-container"><p>Loading history...</p></div>;
+  }
+
   return (
     <div className="page-container">
       <PageHeader

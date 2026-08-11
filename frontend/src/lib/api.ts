@@ -2,11 +2,9 @@ const API_URL = "http://127.0.0.1:8000";
 const TOKEN_KEY = "greenbeans_access_token";
 
 // ---------------------------------------------------------------------------
-// ----------------------------- HELPER METHODS ------------------------------
+// Token helpers
 // ---------------------------------------------------------------------------
 
-// reads the stored access token
-// returns the token string if one is stored, or null if the user is logged out
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -21,7 +19,10 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-// error type thrown for any non-2xx API response, carrying the HTTP status code alongside the message
+// ---------------------------------------------------------------------------
+// Base fetch utility
+// ---------------------------------------------------------------------------
+
 export class ApiError extends Error {
   status: number;
 
@@ -37,7 +38,9 @@ export class ApiError extends Error {
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  if (!options.body || typeof options.body === "string") {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -65,8 +68,40 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 }
 
 // ---------------------------------------------------------------------------
-// ---------------------------------- CLAIMS ----------------------------------
+// Types — aligned with backend Pydantic schemas
 // ---------------------------------------------------------------------------
+
+export interface User {
+  user_id: number;
+  name: string;
+  email: string;
+  profile_photo_id: number | null;
+  profile_photo_url: string | null;
+  location: string | null;
+  rating: number | null;
+  review_count: number;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface ListingResponse {
+  listing_id: number;
+  user_id: number | null;
+  community_id: number | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unit: string | null;
+  status: string | null;
+  expiration_date: string | null;
+  date_posted: string | null;
+  pickup_location: string | null;
+  category: string | null;
+  photo_url: string | null;
+}
 
 export interface ClaimResponse {
   request_id: number;
@@ -94,41 +129,59 @@ export interface ClaimHistoryResponse {
   already_reviewed: boolean;
 }
 
-// approves a requested claim; only the listing owner can do this
-export function approveClaim(claimId: number): Promise<ClaimResponse> {
-  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/approve`, { method: "PUT" });
+export interface CommunityResponse {
+  community_id: number;
+  name: string;
+  description: string;
+  location: string;
+  guidelines: string;
+  is_private: boolean;
+  member_count: number;
+  banner_url: string | null;
 }
 
-// declines a requested claim; only the listing owner can do this
-export function declineClaim(claimId: number): Promise<ClaimResponse> {
-  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/decline`, { method: "PUT" });
+export interface CommunitiesListResponse {
+  my_communities: CommunityResponse[];
+  public_communities: CommunityResponse[];
 }
 
-// cancels a requested or approved claim; the requester or the listing owner can do this
-export function cancelClaim(claimId: number): Promise<ClaimResponse> {
-  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/cancel`, { method: "PUT" });
+export interface MembershipResponse {
+  user_id: number;
+  community_id: number;
+  role: string | null;
+  date_joined: string | null;
 }
 
-// marks an approved claim as picked up once the handoff has happened
-export function pickupClaim(claimId: number): Promise<ClaimResponse> {
-  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/pickup`, { method: "PUT" });
+export interface InvitationResponse {
+  invitation_id: number;
+  community_id: number | null;
+  sender_user_id: number | null;
+  email: string;
+  status: string | null;
+  sent_date: string | null;
+  expiration_date: string | null;
 }
 
-// marks a picked-up claim as completed
-// unlocks the "Leave Review" action for both participants
-export function completeClaim(claimId: number): Promise<ClaimResponse> {
-  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/complete`, { method: "PUT" });
+export interface MessageResponse {
+  message_id: number;
+  thread_id: number;
+  sender_user_id: number | null;
+  content: string;
+  timestamp: string | null;
 }
 
-// lists every claim the current user is involved in, as either requester or listing owner
-// returns a list of ClaimHistoryResponse objects for the exchange history page
-export function listMyClaims(): Promise<ClaimHistoryResponse[]> {
-  return apiFetch<ClaimHistoryResponse[]>("/v1/claims/mine");
+export interface MessageThreadResponse {
+  thread_id: number;
+  claim_request_id: number | null;
+  listing_id: number | null;
+  participant_ids: number[];
+  messages: MessageResponse[];
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------- REVIEWS ---------------------------------
-// ---------------------------------------------------------------------------
+export interface PhotoResponse {
+  photo_id: number;
+  image_link: string;
+}
 
 export interface CreateReviewPayload {
   rating: number;
@@ -152,22 +205,8 @@ export interface UserReviewsResponse {
   reviews: ReviewResponse[];
 }
 
-// submits a review of the other participant on a completed exchange
-// returns a ReviewResponse with the new review's details
-export function createReview(claimId: number, payload: CreateReviewPayload): Promise<ReviewResponse> {
-  return apiFetch<ReviewResponse>(`/v1/claims/${claimId}/reviews`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-// retrieves the reviews a user has received, along with their average rating
-export function getUserReviews(userId: number): Promise<UserReviewsResponse> {
-  return apiFetch<UserReviewsResponse>(`/v1/users/${userId}/reviews`);
-}
-
 // ---------------------------------------------------------------------------
-// ------------------------------------ AUTH ----------------------------------
+// Auth
 // ---------------------------------------------------------------------------
 
 export interface RegisterPayload {
@@ -181,23 +220,6 @@ export interface LoginPayload {
   password: string;
 }
 
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-}
-
-export interface User {
-  user_id: number;
-  name: string;
-  email: string;
-  profile_photo_id: number | null;
-  profile_photo_url: string | null;
-  rating: number | null;
-  review_count: number;
-}
-
-// registers a new user account
-// returns the created User object
 export function registerUser(payload: RegisterPayload): Promise<User> {
   return apiFetch<User>("/v1/register", {
     method: "POST",
@@ -218,4 +240,390 @@ export function loginUser(payload: LoginPayload): Promise<TokenResponse> {
 // returns the User object for the account tied to the stored access token
 export function getMe(): Promise<User> {
   return apiFetch<User>("/v1/me");
+}
+
+// lists only the current user's own listings
+export function getMyListings(): Promise<ListingResponse[]> {
+  return apiFetch<ListingResponse[]>("/v1/me/listings");
+}
+
+// ---------------------------------------------------------------------------
+// Listings
+// ---------------------------------------------------------------------------
+
+export interface CreateListingPayload {
+  name: string;
+  description?: string;
+  quantity: number;
+  unit?: string;
+  expiration_date?: string;
+  pickup_location?: string;
+  category?: string;
+  community_id?: number;
+  photo_id?: number;
+}
+
+export interface UpdateListingPayload {
+  name?: string;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+  status?: string;
+  category?: string;
+  expiration_date?: string;
+  pickup_location?: string;
+}
+
+export function browseListings(params?: {
+  community_id?: number;
+  category?: string;
+  status?: string;
+  search?: string;
+}): Promise<ListingResponse[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.community_id) searchParams.set("community_id", String(params.community_id));
+  if (params?.category) searchParams.set("category", params.category);
+  if (params?.status) searchParams.set("status_filter", params.status);
+  if (params?.search) searchParams.set("search", params.search);
+  const qs = searchParams.toString();
+  return apiFetch<ListingResponse[]>(`/v1/listings${qs ? `?${qs}` : ""}`);
+}
+
+export function getListing(listingId: number): Promise<ListingResponse> {
+  return apiFetch<ListingResponse>(`/v1/listings/${listingId}`);
+}
+
+export function createListing(payload: CreateListingPayload): Promise<ListingResponse> {
+  return apiFetch<ListingResponse>("/v1/listings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateListing(
+  listingId: number,
+  payload: UpdateListingPayload
+): Promise<ListingResponse> {
+  return apiFetch<ListingResponse>(`/v1/listings/${listingId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteListing(listingId: number): Promise<void> {
+  return apiFetch<void>(`/v1/listings/${listingId}`, {
+    method: "DELETE",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Photos
+// ---------------------------------------------------------------------------
+
+export async function uploadPhoto(file: File): Promise<PhotoResponse> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_URL}/v1/photos`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && (data.detail as string)) || `Upload failed with status ${response.status}`;
+    throw new ApiError(response.status, message);
+  }
+
+  return data as PhotoResponse;
+}
+
+// ---------------------------------------------------------------------------
+// Communities
+// ---------------------------------------------------------------------------
+
+export interface CreateCommunityPayload {
+  name: string;
+  description: string;
+  location: string;
+  guidelines: string;
+  is_private: boolean;
+}
+
+export function listCommunities(search?: string): Promise<CommunitiesListResponse> {
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  return apiFetch<CommunitiesListResponse>(`/v1/communities${params}`);
+}
+
+export function getCommunity(communityId: number): Promise<CommunityResponse> {
+  return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`);
+}
+
+export function createCommunity(payload: CreateCommunityPayload): Promise<CommunityResponse> {
+  return apiFetch<CommunityResponse>("/v1/communities", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCommunity(
+  communityId: number,
+  payload: CreateCommunityPayload
+): Promise<CommunityResponse> {
+  return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function joinCommunity(communityId: number): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/join`, {
+    method: "POST",
+  });
+}
+
+export function leaveCommunity(communityId: number): Promise<void> {
+  return apiFetch<void>(`/v1/communities/${communityId}/leave`, {
+    method: "POST",
+  });
+}
+
+export function inviteToCommunity(
+  communityId: number,
+  email: string
+): Promise<InvitationResponse> {
+  return apiFetch<InvitationResponse>(`/v1/communities/${communityId}/invite`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Claims
+// ---------------------------------------------------------------------------
+
+export function getClaimsForListing(listingId: number): Promise<ClaimResponse[]> {
+  return apiFetch<ClaimResponse[]>(`/v1/listings/${listingId}/claims`);
+}
+
+export function createClaim(
+  listingId: number,
+  quantityRequested: number
+): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/listings/${listingId}/claims`, {
+    method: "POST",
+    body: JSON.stringify({ quantity_requested: quantityRequested }),
+  });
+}
+
+export function approveClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/approve`, { method: "PUT" });
+}
+
+export function declineClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/decline`, { method: "PUT" });
+}
+
+export function cancelClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/cancel`, { method: "PUT" });
+}
+
+export function pickupClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/pickup`, { method: "PUT" });
+}
+
+export function completeClaim(claimId: number): Promise<ClaimResponse> {
+  return apiFetch<ClaimResponse>(`/v1/claims/${claimId}/complete`, { method: "PUT" });
+}
+
+// lists every claim the current user is involved in, as either requester or listing owner
+export function listMyClaims(): Promise<ClaimHistoryResponse[]> {
+  return apiFetch<ClaimHistoryResponse[]>("/v1/claims/mine");
+}
+
+// ---------------------------------------------------------------------------
+// Reviews
+// ---------------------------------------------------------------------------
+
+// submits a review of the other participant on a completed exchange
+export function createReview(claimId: number, payload: CreateReviewPayload): Promise<ReviewResponse> {
+  return apiFetch<ReviewResponse>(`/v1/claims/${claimId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// retrieves the reviews a user has received, along with their average rating
+export function getUserReviews(userId: number): Promise<UserReviewsResponse> {
+  return apiFetch<UserReviewsResponse>(`/v1/users/${userId}/reviews`);
+}
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+export function getThread(claimId: number): Promise<MessageThreadResponse> {
+  return apiFetch<MessageThreadResponse>(`/v1/claims/${claimId}/thread`);
+}
+
+export function sendMessage(claimId: number, content: string): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>(`/v1/claims/${claimId}/thread/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Inbox (list all message threads for the current user)
+// ---------------------------------------------------------------------------
+
+export function getMyThreads(): Promise<MessageThreadResponse[]> {
+  return apiFetch<MessageThreadResponse[]>("/v1/me/threads");
+}
+
+// ---------------------------------------------------------------------------
+// Profile
+// ---------------------------------------------------------------------------
+
+export interface UpdateProfilePayload {
+  name?: string;
+  location?: string;
+  profile_photo_id?: number | null;
+}
+
+export function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  return apiFetch<User>("/v1/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export interface NotificationResponse {
+  notification_id: number;
+  user_id: number | null;
+  message_id: number | null;
+  claim_request_id: number | null;
+  content: string;
+  timestamp: string | null;
+  is_read: boolean;
+  type: string | null;
+}
+
+export function getMyNotifications(): Promise<NotificationResponse[]> {
+  return apiFetch<NotificationResponse[]>("/v1/me/notifications");
+}
+
+export function markNotificationRead(notificationId: number): Promise<NotificationResponse> {
+  return apiFetch<NotificationResponse>(`/v1/notifications/${notificationId}/read`, {
+    method: "PUT",
+  });
+}
+
+export function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>("/v1/me/notifications/read-all", {
+    method: "PUT",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Community Members
+// ---------------------------------------------------------------------------
+
+export function getCommunityMembers(communityId: number): Promise<MembershipResponse[]> {
+  return apiFetch<MembershipResponse[]>(`/v1/communities/${communityId}/members`);
+}
+
+export function removeCommunityMember(communityId: number, userId: number): Promise<void> {
+  return apiFetch<void>(`/v1/communities/${communityId}/members/${userId}`, {
+    method: "DELETE",
+  });
+}
+
+export function updateMemberRole(
+  communityId: number,
+  userId: number,
+  role: string
+): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(
+    `/v1/communities/${communityId}/members/${userId}/role?role=${encodeURIComponent(role)}`,
+    { method: "PUT" }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Community Posts
+// ---------------------------------------------------------------------------
+
+export interface CommunityPostResponse {
+  post_id: number;
+  community_id: number;
+  user_id: number;
+  content: string;
+  timestamp: string | null;
+}
+
+export function getCommunityPosts(communityId: number): Promise<CommunityPostResponse[]> {
+  return apiFetch<CommunityPostResponse[]>(`/v1/communities/${communityId}/posts`);
+}
+
+export function createCommunityPost(
+  communityId: number,
+  content: string
+): Promise<CommunityPostResponse> {
+  return apiFetch<CommunityPostResponse>(`/v1/communities/${communityId}/posts`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Join Requests
+// ---------------------------------------------------------------------------
+
+export interface JoinRequestResponse {
+  request_id: number;
+  community_id: number;
+  user_id: number;
+  status: string | null;
+  request_date: string | null;
+}
+
+export function getJoinRequests(communityId: number): Promise<JoinRequestResponse[]> {
+  return apiFetch<JoinRequestResponse[]>(`/v1/communities/${communityId}/join-requests`);
+}
+
+export function approveJoinRequest(
+  communityId: number,
+  requestId: number
+): Promise<JoinRequestResponse> {
+  return apiFetch<JoinRequestResponse>(
+    `/v1/communities/${communityId}/join-requests/${requestId}/approve`,
+    { method: "PUT" }
+  );
+}
+
+export function rejectJoinRequest(
+  communityId: number,
+  requestId: number
+): Promise<JoinRequestResponse> {
+  return apiFetch<JoinRequestResponse>(
+    `/v1/communities/${communityId}/join-requests/${requestId}/reject`,
+    { method: "PUT" }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User lookup (for displaying names in threads, history, etc.)
+// ---------------------------------------------------------------------------
+
+export function getUser(userId: number): Promise<User> {
+  return apiFetch<User>(`/v1/users/${userId}`);
 }

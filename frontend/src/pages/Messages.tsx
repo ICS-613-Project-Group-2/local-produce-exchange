@@ -1,70 +1,109 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
-import Card, { CardBody } from "../components/ui/Card";
-import SearchBar from "../components/ui/SearchBar";
 import EmptyState from "../components/feedback/EmptyState";
 import Button from "../components/ui/Button";
-import { getThreadsForUser, getUserById, getListingById } from "../data/mockData";
-import { displayName } from "../data/utils";
+import Card, { CardBody } from "../components/ui/Card";
+import { useAuth } from "../context/AuthContext";
+import {
+  getMyThreads,
+  getListing,
+  getUser,
+  type MessageThreadResponse,
+  type ListingResponse,
+  type User,
+} from "../lib/api";
 import "./Messages.css";
 
-const CURRENT_USER_ID = 1;
+interface ThreadDisplay {
+  thread: MessageThreadResponse;
+  listing: ListingResponse | null;
+  otherUser: User | null;
+  lastMessageContent: string;
+  lastMessageTime: string;
+  isUnread: boolean;
+}
 
 export default function Messages() {
-  const allThreads = getThreadsForUser(CURRENT_USER_ID);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const [threads, setThreads] = useState<ThreadDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredThreads = searchQuery
-    ? allThreads.filter((thread) => {
-        const otherUserId = thread.participant_ids.find((id) => id !== CURRENT_USER_ID) || thread.participant_ids[1];
-        const otherUser = getUserById(otherUserId);
-        const listing = getListingById(thread.listing_id);
-        const searchLower = searchQuery.toLowerCase();
-        return (
-          otherUser?.name.toLowerCase().includes(searchLower) ||
-          listing?.name.toLowerCase().includes(searchLower)
-        );
-      })
-    : allThreads;
+  useEffect(() => {
+    loadThreads();
+  }, []);
 
-  // Split into active (has recent message) and older
-  const now = Date.now();
-  const activeThreads = filteredThreads.filter((t) => {
-    const lastMsg = t.messages[t.messages.length - 1];
-    const diff = now - new Date(lastMsg.timestamp).getTime();
-    return diff < 7 * 24 * 60 * 60 * 1000; // within 7 days
-  });
-  const olderThreads = filteredThreads.filter((t) => {
-    const lastMsg = t.messages[t.messages.length - 1];
-    const diff = now - new Date(lastMsg.timestamp).getTime();
-    return diff >= 7 * 24 * 60 * 60 * 1000;
-  });
+  async function loadThreads() {
+    setLoading(true);
+    setError(null);
+    try {
+      const threadData = await getMyThreads();
 
-  const unreadCount = filteredThreads.filter((t) => {
-    const lastMsg = t.messages[t.messages.length - 1];
-    return lastMsg.sender_user_id !== CURRENT_USER_ID;
-  }).length;
+      const displays: ThreadDisplay[] = await Promise.all(
+        threadData.map(async (thread) => {
+          let listing: ListingResponse | null = null;
+          let otherUser: User | null = null;
+
+          if (thread.listing_id) {
+            listing = await getListing(thread.listing_id).catch(() => null);
+          }
+
+          // find the other participant
+          const otherUserId = thread.participant_ids.find((id) => id !== user?.user_id);
+          if (otherUserId) {
+            otherUser = await getUser(otherUserId).catch(() => null);
+          }
+
+          const lastMsg = thread.messages[thread.messages.length - 1];
+          const lastMessageContent = lastMsg?.content || "";
+          const lastMessageTime = lastMsg?.timestamp || "";
+
+          // consider unread if the last message was not from the current user
+          const isUnread = lastMsg ? lastMsg.sender_user_id !== user?.user_id : false;
+
+          return { thread, listing, otherUser, lastMessageContent, lastMessageTime, isUnread };
+        })
+      );
+
+      setThreads(displays);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load messages");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="page-container"><p>Loading messages...</p></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <PageHeader title="Messages" subtitle="View conversations related to your listings, requests, and exchanges" />
+        <EmptyState
+          icon={<span>⚠️</span>}
+          title="Failed to load messages"
+          description={error}
+          action={<Button variant="primary" onClick={loadThreads}>Try Again</Button>}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
       <PageHeader
-        title={`Messages${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+        title="Messages"
         subtitle="View conversations related to your listings, requests, and exchanges"
       />
 
-      <div className="messages__search">
-        <SearchBar
-          placeholder="Search by name or listing..."
-          onSearch={setSearchQuery}
-        />
-      </div>
-
-      {filteredThreads.length === 0 ? (
+      {threads.length === 0 ? (
         <EmptyState
           icon={<span>💬</span>}
-          title="No messages yet"
-          description="When you message a listing owner or someone claims your listing, conversations will appear here."
+          title="No conversations yet"
+          description="Conversations are created automatically when you submit a claim request on a listing. Visit a listing and submit a claim to start a conversation with the owner."
           action={
             <Link to="/browse">
               <Button variant="primary">Browse Listings</Button>
@@ -72,80 +111,65 @@ export default function Messages() {
           }
         />
       ) : (
-        <div className="messages__sections">
-          {activeThreads.length > 0 && (
-            <section className="messages__section">
-              <h3 className="messages__section-label">Recent</h3>
-              <div className="messages__list">
-                {activeThreads.map((thread) => (
-                  <ThreadCard key={thread.thread_id} thread={thread} />
-                ))}
-              </div>
-            </section>
-          )}
-          {olderThreads.length > 0 && (
-            <section className="messages__section">
-              <h3 className="messages__section-label">Older</h3>
-              <div className="messages__list">
-                {olderThreads.map((thread) => (
-                  <ThreadCard key={thread.thread_id} thread={thread} />
-                ))}
-              </div>
-            </section>
-          )}
+        <div className="messages__list">
+          {threads.map(({ thread, listing, otherUser, lastMessageContent, lastMessageTime, isUnread }) => (
+            <Link
+              key={thread.thread_id}
+              to={`/messages/${thread.claim_request_id}`}
+              className="messages__thread-link"
+            >
+              <Card className={`messages__thread-card ${isUnread ? "messages__thread-card--unread" : ""}`}>
+                <CardBody>
+                  <div className="messages__thread-row">
+                    <div className="messages__thread-avatar">
+                      {otherUser?.profile_photo_url ? (
+                        <img src={otherUser.profile_photo_url} alt={otherUser.name} />
+                      ) : (
+                        <div className="messages__thread-avatar--placeholder">
+                          {otherUser?.name?.[0] || "?"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="messages__thread-content">
+                      <div className="messages__thread-header">
+                        <span className="messages__thread-name">
+                          {otherUser?.name || "Unknown User"}
+                        </span>
+                        <span className="messages__thread-time">
+                          {lastMessageTime ? formatTime(lastMessageTime) : ""}
+                        </span>
+                      </div>
+                      {listing && (
+                        <span className="messages__thread-listing">
+                          Re: {listing.name}
+                        </span>
+                      )}
+                      <p className="messages__thread-preview">
+                        {lastMessageContent.length > 80 ? lastMessageContent.slice(0, 80) + "..." : lastMessageContent}
+                      </p>
+                    </div>
+                    {isUnread && <span className="messages__unread-dot" />}
+                  </div>
+                </CardBody>
+              </Card>
+            </Link>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function ThreadCard({ thread }: { thread: ReturnType<typeof getThreadsForUser>[0] }) {
-  const otherUserId = thread.participant_ids.find((id) => id !== CURRENT_USER_ID) || thread.participant_ids[1];
-  const otherUser = getUserById(otherUserId);
-  const listing = getListingById(thread.listing_id);
-  const lastMessage = thread.messages[thread.messages.length - 1];
-  const isUnread = lastMessage.sender_user_id !== CURRENT_USER_ID;
+function formatTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  function timeAgo(timestamp: string): string {
-    const diff = Date.now() - new Date(timestamp).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(timestamp).toLocaleDateString();
+  if (diffDays === 0) {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
-
-  return (
-    <Link to={`/messages/${thread.thread_id}`} className="messages__thread-link">
-      <Card className={`messages__thread-card ${isUnread ? "messages__thread-card--unread" : ""}`}>
-        <CardBody>
-          <div className="messages__thread">
-            {otherUser?.profile_photo_url ? (
-              <img src={otherUser.profile_photo_url} alt={otherUser.name} className="messages__avatar" />
-            ) : (
-              <div className="messages__avatar messages__avatar--placeholder">
-                {otherUser?.name[0] || "?"}
-              </div>
-            )}
-            <div className="messages__thread-content">
-              <div className="messages__thread-header">
-                <span className="messages__thread-name">{displayName(otherUser?.name || "Unknown User")}</span>
-                <span className="messages__thread-time">{timeAgo(lastMessage.timestamp)}</span>
-              </div>
-              {listing && (
-                <p className="messages__thread-listing">Re: {listing.name}</p>
-              )}
-              <p className="messages__thread-preview">
-                {lastMessage.sender_user_id === CURRENT_USER_ID ? "You: " : ""}
-                {lastMessage.content.length > 70 ? lastMessage.content.slice(0, 70) + "..." : lastMessage.content}
-              </p>
-            </div>
-            {isUnread && <span className="messages__unread-dot" aria-label="Unread" />}
-          </div>
-        </CardBody>
-      </Card>
-    </Link>
-  );
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return date.toLocaleDateString(undefined, { weekday: "short" });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

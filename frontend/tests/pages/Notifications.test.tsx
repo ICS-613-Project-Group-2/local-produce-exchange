@@ -1,13 +1,18 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 import { AuthProvider } from '@/context/AuthContext';
+import { setToken, clearToken } from '@/lib/api';
 import Notifications from '@/pages/Notifications';
+
+const API_URL = 'http://127.0.0.1:8000';
 
 function renderNotifications() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/notifications']}>
       <AuthProvider>
         <Notifications />
       </AuthProvider>
@@ -16,146 +21,158 @@ function renderNotifications() {
 }
 
 describe('Notifications', () => {
+  beforeEach(() => {
+    setToken('fake-jwt-token');
+  });
 
-  describe('page header', () => {
+  afterEach(() => {
+    clearToken();
+  });
 
-    it('must display notifications title', () => {
+  describe('loading and display', () => {
+    it('shows loading state initially', () => {
       renderNotifications();
-
-      expect(screen.getByText(/Notifications/)).toBeInTheDocument();
+      expect(screen.getByText('Loading notifications...')).toBeInTheDocument();
     });
 
-    it('must display subtitle', () => {
+    it('displays notification content after loading', async () => {
       renderNotifications();
 
-      expect(screen.getByText(/updates about your listings/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/Oliver requested 3 lbs of your Fresh Tomatoes/)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Your Zucchini listing expires tomorrow/)).toBeInTheDocument();
     });
 
-    it('must show the unread count in the title', () => {
-      // User 1 has 3 unread notifications in the seed data (ids 1, 2, 5).
+    it('shows unread count in header', async () => {
       renderNotifications();
 
-      expect(screen.getByText('Notifications (3 unread)')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/2 unread/)).toBeInTheDocument();
+      });
     });
-
   });
 
   describe('filter tabs', () => {
-
-    it('must display all filter buttons', () => {
+    it('displays filter tab buttons', async () => {
       renderNotifications();
 
-      expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Messages' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Claims' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Communities' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Listings' })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('All')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Messages')).toBeInTheDocument();
+      expect(screen.getByText('Claims')).toBeInTheDocument();
+      expect(screen.getByText('Communities')).toBeInTheDocument();
+      expect(screen.getByText('Listings')).toBeInTheDocument();
     });
 
-    it('must filter notifications when filter clicked', async () => {
+    it('filters notifications by type when clicking a tab', async () => {
       renderNotifications();
 
-      const messagesFilter = screen.getByRole('button', { name: 'Messages' });
-      await userEvent.click(messagesFilter);
+      await waitFor(() => {
+        expect(screen.getByText(/Oliver requested/)).toBeInTheDocument();
+      });
 
-      expect(messagesFilter).toHaveClass('notifications__filter--active');
-      // Only notification 5 (type "message") should remain for user 1.
-      expect(screen.getByText(/new message from Oliver Lee/)).toBeInTheDocument();
-      expect(screen.queryByText(/Fresh Tomatoes listing/)).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText('Messages'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/New message from Oliver/)).toBeInTheDocument();
+      });
+      // Claim notification should no longer be visible
+      expect(screen.queryByText(/Oliver requested 3 lbs/)).not.toBeInTheDocument();
     });
 
+    it('shows empty state when filtered to a type with no results', async () => {
+      // Communities tab only has 1 notification. Override to have none of that type.
+      server.use(
+        http.get(`${API_URL}/v1/me/notifications`, () => {
+          return HttpResponse.json([
+            {
+              notification_id: 1,
+              user_id: 1,
+              message_id: null,
+              claim_request_id: 1,
+              content: 'A claim notification',
+              timestamp: '2026-08-10T10:00:00',
+              is_read: false,
+              type: 'claim',
+            },
+          ]);
+        })
+      );
+
+      renderNotifications();
+
+      await waitFor(() => {
+        expect(screen.getByText('A claim notification')).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText('Messages'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/No notifications yet/)).toBeInTheDocument();
+      });
+    });
   });
 
-  describe('notifications list', () => {
-
-    it('must display notifications grouped by date', () => {
+  describe('mark as read', () => {
+    it('has a mark all as read button when unread notifications exist', async () => {
       renderNotifications();
 
-      const todayGroup = screen.queryByText('Today');
-      const yesterdayGroup = screen.queryByText('Yesterday');
-      const earlierGroup = screen.queryByText('Earlier');
-
-      const groups = [todayGroup, yesterdayGroup, earlierGroup].filter(g => g !== null);
-      expect(groups.length).toBeGreaterThan(0);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Mark all as read/ })).toBeInTheDocument();
+      });
     });
 
-  });
+    it('mark all as read calls the API', async () => {
+      let markAllCalled = false;
+      server.use(
+        http.put(`${API_URL}/v1/me/notifications/read-all`, () => {
+          markAllCalled = true;
+          return new HttpResponse(null, { status: 204 });
+        })
+      );
 
-  describe('notifications actions', () => {
-
-    it('must display the mark-all-as-read button when unread notifications exist', () => {
       renderNotifications();
 
-      expect(screen.getByRole('button', { name: /Mark all as read/ })).toBeInTheDocument();
-    });
-
-    it('must mark all notifications as read and hide the button when clicked', async () => {
-      renderNotifications();
-
-      expect(screen.getAllByLabelText('Unread')).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Mark all as read/ })).toBeInTheDocument();
+      });
 
       await userEvent.click(screen.getByRole('button', { name: /Mark all as read/ }));
 
-      expect(screen.queryByRole('button', { name: /Mark all as read/ })).not.toBeInTheDocument();
-      expect(screen.queryAllByLabelText('Unread')).toHaveLength(0);
-      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(markAllCalled).toBe(true);
+      });
     });
 
-    it('must mark a single notification as read when its link is clicked', async () => {
+    it('clicking a notification marks it as read', async () => {
+      let markedId: string | null = null;
+      server.use(
+        http.put(`${API_URL}/v1/notifications/:id/read`, ({ params }) => {
+          markedId = params.id as string;
+          return HttpResponse.json({
+            notification_id: Number(params.id),
+            is_read: true,
+          });
+        })
+      );
+
       renderNotifications();
 
-      const unreadDotsBefore = screen.getAllByLabelText('Unread');
-      expect(unreadDotsBefore).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getByText(/Oliver requested/)).toBeInTheDocument();
+      });
 
-      const links = screen.getAllByRole('link');
-      await userEvent.click(links[0]);
-
-      expect(screen.queryAllByLabelText('Unread')).toHaveLength(unreadDotsBefore.length - 1);
-    });
-
-    it('must dismiss a notification when its × button is clicked', async () => {
-      renderNotifications();
-
-      const dismissButtons = screen.getAllByLabelText(/Dismiss notification/);
-      const countBefore = dismissButtons.length;
-
-      await userEvent.click(dismissButtons[0]);
-
-      expect(screen.getAllByLabelText(/Dismiss notification/)).toHaveLength(countBefore - 1);
-    });
-
-  });
-
-  describe('notification links', () => {
-
-    it('must link each notification to its type-based destination', () => {
-      renderNotifications();
-
-      const links = screen.getAllByRole('link');
-      expect(links.length).toBeGreaterThan(0);
-      // "Oliver Lee requested 3 lbs..." is a "claim" type notification.
-      const claimLink = screen.getByText('Oliver Lee requested 3 lbs of your Fresh Tomatoes listing.').closest('a');
-      expect(claimLink).toHaveAttribute('href', '/history');
-    });
-
-  });
-
-  describe('empty state', () => {
-
-    it('must show the empty state when a filter matches nothing', async () => {
-      renderNotifications();
-
-      // Dismiss every notification, then the "no notifications" empty state
-      // should render regardless of which filter tab is active.
-      let dismissButtons = screen.queryAllByLabelText(/Dismiss notification/);
-      while (dismissButtons.length > 0) {
-        await userEvent.click(dismissButtons[0]);
-        dismissButtons = screen.queryAllByLabelText(/Dismiss notification/);
+      // Click the notification link
+      const notificationLink = screen.getByText(/Oliver requested/).closest('a');
+      if (notificationLink) {
+        await userEvent.click(notificationLink);
       }
 
-      expect(screen.getByText('No notifications yet')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(markedId).toBe('1');
+      });
     });
-
   });
-
 });

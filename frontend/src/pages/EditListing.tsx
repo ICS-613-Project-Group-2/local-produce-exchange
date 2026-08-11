@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
 import Modal, { ModalFooter } from "../components/ui/Modal";
-import { getListingById, mockCommunities, mockClaimRequests, getUserById } from "../data/mockData";
+import EmptyState from "../components/feedback/EmptyState";
+import {
+  getListing,
+  updateListing,
+  deleteListing,
+  getClaimsForListing,
+  type ListingResponse,
+  type ClaimResponse,
+} from "../lib/api";
+import type { BadgeStatus } from "../components/ui/StatusBadge";
 import "./EditListing.css";
 
 const CATEGORIES = [
@@ -27,53 +36,77 @@ const STATUS_OPTIONS = [
 
 export default function EditListing() {
   const { id } = useParams<{ id: string }>();
-  const listing = getListingById(Number(id));
+  const navigate = useNavigate();
 
+  const [listing, setListing] = useState<ListingResponse | null>(null);
+  const [claims, setClaims] = useState<ClaimResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "",
+    quantity: "",
+    unit: "",
+    description: "",
+    expiration_date: "",
+    pickup_location: "",
+    status: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [deleted, setDeleted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [statusChanged, setStatusChanged] = useState(false);
 
-  if (!listing) {
+  useEffect(() => {
+    loadData();
+  }, [id]);
+
+  async function loadData() {
+    setLoading(true);
+    setError(null);
+    try {
+      const listingData = await getListing(Number(id));
+      setListing(listingData);
+      setFormData({
+        name: listingData.name,
+        category: listingData.category || "",
+        quantity: String(listingData.quantity),
+        unit: listingData.unit || "",
+        description: listingData.description || "",
+        expiration_date: listingData.expiration_date || "",
+        pickup_location: listingData.pickup_location || "",
+        status: listingData.status || "available",
+      });
+      getClaimsForListing(listingData.listing_id).then(setClaims).catch(() => setClaims([]));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load listing");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="page-container"><p>Loading listing...</p></div>;
+  }
+
+  if (error || !listing) {
     return (
       <div className="page-container">
-        <div className="edit-listing__error">
-          <h1>Listing Not Found</h1>
-          <p>This listing may have been removed or does not exist.</p>
-          <Link to="/dashboard">
-            <Button variant="primary">Go to Dashboard</Button>
-          </Link>
-        </div>
+        <EmptyState
+          icon={<span>🧺</span>}
+          title="Listing Not Found"
+          description={error || "This listing may have been removed or does not exist."}
+          action={<Link to="/dashboard"><Button variant="primary">Go to Dashboard</Button></Link>}
+        />
       </div>
     );
   }
 
-  const [formData, setFormData] = useState({
-    name: listing.name,
-    category: listing.category,
-    quantity: String(listing.quantity),
-    unit: listing.unit,
-    description: listing.description,
-    expiration_date: listing.expiration_date,
-    pickup_location: listing.pickup_location,
-    status: listing.status,
-    community_id: String(listing.community_id),
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const userCommunities = mockCommunities.filter((c) => !c.is_private || c.community_id <= 3);
   const isClosed = formData.status === "closed";
-
-  // Claims for this listing
-  const listingClaims = mockClaimRequests.filter((cr) => cr.listing_id === listing.listing_id);
-  const pendingClaims = listingClaims.filter((cr) => cr.status === "pending");
-  const approvedClaims = listingClaims.filter((cr) => cr.status === "approved");
-
-  // Activity log (mock)
-  const activityLog = [
-    { action: "Created", date: listing.date_posted },
-    ...(listing.status !== "available" ? [{ action: `Status changed to ${listing.status}`, date: "2026-07-01T12:00:00" }] : []),
-  ];
+  const pendingClaims = claims.filter((cr) => cr.status === "requested" || cr.status === "pending");
+  const approvedClaims = claims.filter((cr) => cr.status === "approved");
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target;
@@ -83,7 +116,7 @@ export default function EditListing() {
   }
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setFormData((prev) => ({ ...prev, status: e.target.value as typeof prev.status }));
+    setFormData((prev) => ({ ...prev, status: e.target.value }));
     setSaved(false);
     setStatusChanged(true);
     setTimeout(() => setStatusChanged(false), 3000);
@@ -104,7 +137,7 @@ export default function EditListing() {
     return newErrors;
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -112,26 +145,35 @@ export default function EditListing() {
       return;
     }
     setErrors({});
-    setSaved(true);
+    setSaving(true);
+    try {
+      const updated = await updateListing(listing!.listing_id, {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        quantity: Number(formData.quantity),
+        unit: formData.unit.trim(),
+        status: formData.status,
+        category: formData.category,
+        expiration_date: formData.expiration_date,
+        pickup_location: formData.pickup_location.trim(),
+      });
+      setListing(updated);
+      setSaved(true);
+    } catch (err) {
+      setErrors({ _form: err instanceof Error ? err.message : "Failed to save changes" });
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     setDeleteModalOpen(false);
-    setDeleted(true);
-  }
-
-  if (deleted) {
-    return (
-      <div className="page-container">
-        <div className="edit-listing__deleted">
-          <h1>Listing Deleted</h1>
-          <p>"{listing.name}" has been permanently removed.</p>
-          <Link to="/dashboard">
-            <Button variant="primary">Go to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
-    );
+    try {
+      await deleteListing(listing!.listing_id);
+      navigate("/dashboard");
+    } catch {
+      alert("Failed to delete listing");
+    }
   }
 
   return (
@@ -150,14 +192,10 @@ export default function EditListing() {
       <div className="edit-listing__status-bar">
         <div className="edit-listing__status-current">
           <span>Current Status:</span>
-          <StatusBadge status={formData.status as any} />
+          <StatusBadge status={formData.status as BadgeStatus} />
         </div>
         <div className="edit-listing__status-actions">
-          <select
-            className="form-field__input edit-listing__status-select"
-            value={formData.status}
-            onChange={handleStatusChange}
-          >
+          <select className="form-field__input edit-listing__status-select" value={formData.status} onChange={handleStatusChange}>
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
@@ -166,9 +204,7 @@ export default function EditListing() {
       </div>
 
       {statusChanged && (
-        <div className="edit-listing__status-toast">
-          Status updated to "{formData.status}". Save to confirm changes.
-        </div>
+        <div className="edit-listing__status-toast">Status updated to "{formData.status}". Save to confirm changes.</div>
       )}
 
       {isClosed && (
@@ -178,36 +214,28 @@ export default function EditListing() {
       )}
 
       {saved && (
-        <div className="edit-listing__save-success">
-          ✅ Listing updated successfully. <span className="edit-listing__timestamp">Last saved just now</span>
-        </div>
+        <div className="edit-listing__save-success">✅ Listing updated successfully. <span className="edit-listing__timestamp">Last saved just now</span></div>
       )}
 
+      {errors._form && <div className="edit-listing__error-notice">{errors._form}</div>}
+
       {/* Claim Requests Summary */}
-      {listingClaims.length > 0 && (
+      {claims.length > 0 && (
         <div className="edit-listing__claims-summary">
           <h3>Claim Requests</h3>
           <div className="edit-listing__claims-stats">
             <span className="edit-listing__claims-stat">{pendingClaims.length} pending</span>
             <span className="edit-listing__claims-stat">{approvedClaims.length} approved</span>
-            <span className="edit-listing__claims-stat">{listingClaims.length} total</span>
+            <span className="edit-listing__claims-stat">{claims.length} total</span>
           </div>
           <div className="edit-listing__claims-list">
-            {listingClaims.map((claim) => {
-              const claimant = getUserById(claim.requester_user_id);
-              return (
-                <div key={claim.request_id} className="edit-listing__claim-row">
-                  {claimant?.profile_photo_url ? (
-                    <img src={claimant.profile_photo_url} alt={claimant.name} className="edit-listing__claim-avatar" />
-                  ) : (
-                    <div className="edit-listing__claim-avatar edit-listing__claim-avatar--placeholder">{claimant?.name[0]}</div>
-                  )}
-                  <span className="edit-listing__claim-name">{claimant?.name}</span>
-                  <span className="edit-listing__claim-qty">{claim.quantity_requested} {listing.unit}</span>
-                  <StatusBadge status={claim.status} />
-                </div>
-              );
-            })}
+            {claims.map((claim) => (
+              <div key={claim.request_id} className="edit-listing__claim-row">
+                <span className="edit-listing__claim-name">Requester #{claim.requester_user_id}</span>
+                <span className="edit-listing__claim-qty">{claim.quantity_requested} {formData.unit}</span>
+                <StatusBadge status={(claim.status || "pending") as BadgeStatus} />
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -255,55 +283,25 @@ export default function EditListing() {
               </FormField>
             </section>
 
-            <section className="edit-listing__section">
-              <h2>Community</h2>
-              <FormField label="Posted in" htmlFor="community_id">
-                <select id="community_id" name="community_id" className="form-field__input" value={formData.community_id} onChange={handleChange}>
-                  {userCommunities.map((c) => (
-                    <option key={c.community_id} value={c.community_id}>{c.name} {c.is_private ? "(Private)" : "(Public)"}</option>
-                  ))}
-                </select>
-              </FormField>
-            </section>
-
             <div className="edit-listing__actions">
-              <Button variant="primary" type="submit" size="lg">Save Changes</Button>
+              <Button variant="primary" type="submit" size="lg" disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
               <Link to={`/listings/${listing.listing_id}`}><Button variant="outline" size="lg">Cancel</Button></Link>
             </div>
           </form>
         </CardBody>
       </Card>
 
-      {/* Activity Log */}
-      <div className="edit-listing__activity">
-        <h3>Activity</h3>
-        <div className="edit-listing__activity-list">
-          {activityLog.map((entry, i) => (
-            <div key={i} className="edit-listing__activity-item">
-              <span className="edit-listing__activity-dot" />
-              <span>{entry.action}</span>
-              <span className="edit-listing__activity-date">{new Date(entry.date).toLocaleDateString()}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Danger Zone */}
       <div className="edit-listing__danger-zone">
         <h3>Danger Zone</h3>
         <p>Permanently delete this listing and all associated data. This cannot be undone.</p>
-        <Button variant="danger" size="sm" onClick={() => setDeleteModalOpen(true)}>
-          Delete Listing
-        </Button>
+        <Button variant="danger" size="sm" onClick={() => setDeleteModalOpen(true)}>Delete Listing</Button>
       </div>
 
       {/* Delete Modal */}
-      <Modal
-        open={deleteModalOpen}
-        onOpenChange={setDeleteModalOpen}
-        title="Delete Listing"
-        description="Are you sure you want to delete this listing? This action cannot be undone."
-      >
+      <Modal open={deleteModalOpen} onOpenChange={setDeleteModalOpen} title="Delete Listing" description="Are you sure you want to delete this listing? This action cannot be undone.">
         <p>This will permanently remove "{listing.name}" and all associated claim requests and messages.</p>
         <ModalFooter>
           <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>

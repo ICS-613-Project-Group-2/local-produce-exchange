@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockNotifications } from "../data/mockData";
-import type { Notification } from "../data/types";
+import {
+  getMyNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type NotificationResponse,
+} from "../lib/api";
 import "./Notifications.css";
-
-const CURRENT_USER_ID = 1;
 
 type FilterTab = "all" | "message" | "claim" | "community" | "listing";
 
@@ -38,17 +40,34 @@ function getDateGroup(timestamp: string): string {
 
 export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
-  const [notifications, setNotifications] = useState<Notification[]>(
-    mockNotifications.filter((n) => n.user_id === CURRENT_USER_ID)
-  );
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  async function loadNotifications() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMyNotifications();
+      setNotifications(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filteredNotifications = activeFilter === "all"
     ? notifications
     : notifications.filter((n) => n.type === activeFilter);
 
   // Group by date
-  const grouped = filteredNotifications.reduce<Record<string, Notification[]>>((acc, n) => {
-    const group = getDateGroup(n.timestamp);
+  const grouped = filteredNotifications.reduce<Record<string, NotificationResponse[]>>((acc, n) => {
+    const group = n.timestamp ? getDateGroup(n.timestamp) : "Earlier";
     if (!acc[group]) acc[group] = [];
     acc[group].push(n);
     return acc;
@@ -56,14 +75,24 @@ export default function Notifications() {
 
   const groupOrder = ["Today", "Yesterday", "Earlier"];
 
-  function handleMarkAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  async function handleMarkAllRead() {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch {
+      // fail silently
+    }
   }
 
-  function handleMarkRead(id: number) {
-    setNotifications((prev) =>
-      prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
-    );
+  async function handleMarkRead(id: number) {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
+      );
+    } catch {
+      // fail silently
+    }
   }
 
   function handleDismiss(id: number) {
@@ -79,6 +108,24 @@ export default function Notifications() {
     { value: "community", label: "Communities" },
     { value: "listing", label: "Listings" },
   ];
+
+  if (loading) {
+    return <div className="page-container"><p>Loading notifications...</p></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <PageHeader title="Notifications" />
+        <EmptyState
+          icon={<span>⚠️</span>}
+          title="Failed to load notifications"
+          description={error}
+          action={<Button variant="primary" onClick={loadNotifications}>Try Again</Button>}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -129,15 +176,17 @@ export default function Notifications() {
                       className={`notifications__item ${!notification.is_read ? "notifications__item--unread" : ""}`}
                     >
                       <Link
-                        to={TYPE_LINKS[notification.type] || "/dashboard"}
+                        to={TYPE_LINKS[notification.type || ""] || "/dashboard"}
                         className="notifications__item-link"
                         onClick={() => handleMarkRead(notification.notification_id)}
                       >
-                        <span className="notifications__icon">{TYPE_ICONS[notification.type] || "🔔"}</span>
+                        <span className="notifications__icon">{TYPE_ICONS[notification.type || ""] || "🔔"}</span>
                         <div className="notifications__content">
                           <p className="notifications__text">{notification.content}</p>
                           <span className="notifications__time">
-                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {notification.timestamp
+                              ? new Date(notification.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                              : ""}
                           </span>
                         </div>
                         {!notification.is_read && <span className="notifications__unread-dot" aria-label="Unread" />}

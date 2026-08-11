@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -6,13 +6,17 @@ from sqlalchemy import func, or_
 
 from database import get_db
 from api.deps import get_current_user
-from models import Community, Membership, Invitation, Photo, User
+from models import Community, CommunityPost, JoinRequest, Membership, Invitation, Photo, User
 from schemas import (
     CreateCommunity,
+    CreateCommunityPost,
+    CommunityPostResponse,
     CommunityResponse,
     CommunitiesListResponse,
     InviteUser,
     InvitationResponse,
+    JoinRequestResponse,
+    MembershipResponse,
 )
 
 router = APIRouter()
@@ -63,7 +67,7 @@ def _check_moderation_perms(db: Session, community_id: int, user_id: int) -> Mem
 # checks if a user has a pending invitation to a community
 # returns True if the user has a pending invitation, False otherwise    
 def _has_pending_invitation(db: Session, community_id: int, email: str) -> bool:
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     return (
         db.query(Invitation)
         .filter(
@@ -178,7 +182,7 @@ def create_community(
         user_id = current_user.user_id,
         community_id = community.community_id,
         role = "owner",
-        date_joined = datetime.now(datetime.timezone.utc),
+        date_joined = datetime.now(timezone.utc),
     )
     db.add(owner_membership)
 
@@ -267,7 +271,7 @@ def invite_to_community(
         )
 
     # create a new invitation for the invited user and add it to the database
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     invitation = Invitation(
         community_id = community_id,
         sender_user_id = current_user.user_id,
@@ -284,7 +288,7 @@ def invite_to_community(
     return invitation
 
 
-@router.post("/v1/communities/{community_id}/join", response_model=Membership, status_code=status.HTTP_201_CREATED)
+@router.post("/v1/communities/{community_id}/join", response_model=MembershipResponse, status_code=status.HTTP_201_CREATED)
 def join_community(
     community_id: int,
     current_user: User = Depends(get_current_user),
@@ -302,7 +306,7 @@ def join_community(
         user_id = current_user.user_id,
         community_id = community_id,
         role = "member",
-        date_joined = datetime.now(datetime.timezone.utc),
+        date_joined = datetime.now(timezone.utc),
     )
     db.add(membership)
     db.commit()
@@ -338,3 +342,234 @@ def leave_community(
     db.delete(membership)
     db.commit()
     return None
+
+
+# ---------------------------------------------------------------------------
+# ---------------------- COMMUNITY MEMBERS ENDPOINTS -------------------------
+# ---------------------------------------------------------------------------
+
+# lists all members of a community
+# the user must be a member themselves to see the list
+# returns a list of MembershipResponse objects
+@router.get("/v1/communities/{community_id}/members", response_model=list[MembershipResponse])
+def list_community_members(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+
+    # the user must be a member of the community to see the member list
+    if _get_membership(db, community_id, current_user.user_id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member to view this community's members")
+
+    members = (
+        db.query(Membership)
+        .filter(Membership.community_id == community_id)
+        .order_by(Membership.date_joined)
+        .all()
+    )
+    return members
+
+
+# removes a member from a community
+# only moderators/owners can remove members; owners cannot be removed
+# returns a 204 No Content response if successful
+@router.delete("/v1/communities/{community_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_community_member(
+    community_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+    _check_moderation_perms(db, community_id, current_user.user_id)
+
+    target_membership = _get_membership(db, community_id, user_id)
+    if target_membership is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not a member of this community")
+
+    if target_membership.role == "owner":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot remove the community owner")
+
+    db.delete(target_membership)
+    db.commit()
+    return None
+
+
+# updates a member's role in a community
+# only moderators/owners can change roles; owners cannot have their role changed
+# returns a MembershipResponse with the updated role
+@router.put("/v1/communities/{community_id}/members/{user_id}/role", response_model=MembershipResponse)
+def update_member_role(
+    community_id: int,
+    user_id: int,
+    role: str = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+    _check_moderation_perms(db, community_id, current_user.user_id)
+
+    target_membership = _get_membership(db, community_id, user_id)
+    if target_membership is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not a member of this community")
+
+    if target_membership.role == "owner":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change the owner's role")
+
+    if role not in ("member", "moderator", "admin"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+
+    target_membership.role = role
+    db.commit()
+    db.refresh(target_membership)
+    return target_membership
+
+
+# ---------------------------------------------------------------------------
+# ---------------------- COMMUNITY POSTS ENDPOINTS ---------------------------
+# ---------------------------------------------------------------------------
+
+# lists all posts in a community ordered by most recent first
+# the user must be a member to view posts
+# returns a list of CommunityPostResponse objects
+@router.get("/v1/communities/{community_id}/posts", response_model=list[CommunityPostResponse])
+def list_community_posts(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+
+    if _get_membership(db, community_id, current_user.user_id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member to view posts")
+
+    posts = (
+        db.query(CommunityPost)
+        .filter(CommunityPost.community_id == community_id)
+        .order_by(CommunityPost.timestamp.desc())
+        .all()
+    )
+    return posts
+
+
+# creates a new post in a community
+# the user must be a member to post
+# returns a CommunityPostResponse with the new post's details
+@router.post("/v1/communities/{community_id}/posts", response_model=CommunityPostResponse, status_code=status.HTTP_201_CREATED)
+def create_community_post(
+    community_id: int,
+    post_form: CreateCommunityPost,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+
+    if _get_membership(db, community_id, current_user.user_id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member to create posts")
+
+    post = CommunityPost(
+        community_id=community_id,
+        user_id=current_user.user_id,
+        content=post_form.content,
+        timestamp=datetime.now(timezone.utc),
+    )
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+# ---------------------------------------------------------------------------
+# ---------------------- JOIN REQUEST ENDPOINTS -------------------------------
+# ---------------------------------------------------------------------------
+
+# lists pending join requests for a community
+# only moderators/owners can view join requests
+# returns a list of JoinRequestResponse objects
+@router.get("/v1/communities/{community_id}/join-requests", response_model=list[JoinRequestResponse])
+def list_join_requests(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+    _check_moderation_perms(db, community_id, current_user.user_id)
+
+    requests = (
+        db.query(JoinRequest)
+        .filter(JoinRequest.community_id == community_id, JoinRequest.status == "pending")
+        .order_by(JoinRequest.request_date.desc())
+        .all()
+    )
+    return requests
+
+
+# approves a join request and creates the membership
+# only moderators/owners can approve
+# returns the updated JoinRequestResponse
+@router.put("/v1/communities/{community_id}/join-requests/{request_id}/approve", response_model=JoinRequestResponse)
+def approve_join_request(
+    community_id: int,
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+    _check_moderation_perms(db, community_id, current_user.user_id)
+
+    join_request = (
+        db.query(JoinRequest)
+        .filter(JoinRequest.request_id == request_id, JoinRequest.community_id == community_id)
+        .first()
+    )
+    if join_request is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Join request not found")
+
+    if join_request.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Join request is no longer pending")
+
+    join_request.status = "approved"
+
+    # create a membership for the user
+    membership = Membership(
+        user_id=join_request.user_id,
+        community_id=community_id,
+        role="member",
+        date_joined=datetime.now(timezone.utc),
+    )
+    db.add(membership)
+    db.commit()
+    db.refresh(join_request)
+    return join_request
+
+
+# rejects a join request
+# only moderators/owners can reject
+# returns the updated JoinRequestResponse
+@router.put("/v1/communities/{community_id}/join-requests/{request_id}/reject", response_model=JoinRequestResponse)
+def reject_join_request(
+    community_id: int,
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_community(db, community_id)
+    _check_moderation_perms(db, community_id, current_user.user_id)
+
+    join_request = (
+        db.query(JoinRequest)
+        .filter(JoinRequest.request_id == request_id, JoinRequest.community_id == community_id)
+        .first()
+    )
+    if join_request is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Join request not found")
+
+    if join_request.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Join request is no longer pending")
+
+    join_request.status = "rejected"
+    db.commit()
+    db.refresh(join_request)
+    return join_request

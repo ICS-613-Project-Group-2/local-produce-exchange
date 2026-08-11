@@ -54,6 +54,7 @@ describe('registerUser', () => {                                    // Test Suit
       profile_photo_url: null,
       location: null,
       rating: null,
+      review_count: 0,
     });
   });
 

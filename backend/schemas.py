@@ -48,6 +48,14 @@ class GetUser(BaseModel):
     rating: float | None = None
     review_count: int = 0
 
+
+class UpdateUser(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    location: str | None = None
+    profile_photo_id: int | None = None
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

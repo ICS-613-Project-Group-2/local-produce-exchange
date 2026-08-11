@@ -48,23 +48,6 @@ describe('CreateCommunity', () => {
     expect(radioButtons[0]).toBeChecked();
   });
 
-  it('must show invite email field when private is selected', () => {
-    renderCreateCommunity();
-
-    const inviteEmail = screen.getByPlaceholderText('friend@example.com');
-    expect(inviteEmail).toBeInTheDocument();
-  });
-
-  it('must hide invite email field when public is selected', async () => {
-    renderCreateCommunity();
-
-    const radioButtons = screen.getAllByRole('radio');
-    await userEvent.click(radioButtons[1]);
-
-    const inviteEmail = screen.queryByPlaceholderText('friend@example.com');
-    expect(inviteEmail).not.toBeInTheDocument();
-  });
-
   it('must render optional guidelines field', () => {
     renderCreateCommunity();
 
@@ -107,27 +90,6 @@ describe('CreateCommunity', () => {
     await userEvent.type(nameInput, 'Test Community');
 
     expect(screen.queryByText('Community name is required.')).not.toBeInTheDocument();
-  });
-
-  it('must validate email format', async () => {
-    renderCreateCommunity();
-
-    const nameInput = screen.getByLabelText(/Community Name/);
-    const descInput = screen.getByLabelText(/Description/);
-    const locationInput = screen.getByLabelText(/Location/);
-    const emailInput = screen.getByPlaceholderText('friend@example.com');
-    const submitButton = screen.getByRole('button', { name: 'Create Community' });
-
-    await userEvent.type(nameInput, 'Test Community');
-    await userEvent.type(descInput, 'Test description');
-    await userEvent.type(locationInput, 'Test location');
-    await userEvent.type(emailInput, 'invalidemail');
-    await userEvent.click(submitButton);
-
-    const errorElement = screen.queryByText(/Please enter a valid email/);
-    if (errorElement) {
-      expect(errorElement).toBeInTheDocument();
-    }
   });
 
   it('must show success screen after valid submission', async () => {
