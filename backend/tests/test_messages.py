@@ -115,27 +115,26 @@ def test_list_my_threads_sorted_by_latest_message(
     assert body[1]["thread_id"] == thread2.thread_id
 
 
-# NOTE: a thread with zero messages is exercised here as the *only* thread in the inbox
-# rather than alongside a thread that has messages. Mixing the two currently crashes
-# list_my_threads with "TypeError: can't compare offset-naive and offset-aware datetimes"
-# (messages.py's latest_ts() falls back to a tz-aware datetime.min for empty threads, but
-# real Message.timestamp values come back tz-naive) -- a genuine bug, flagged separately
-# rather than worked around here, since reproducing it would make this test fail.
-def test_list_my_threads_thread_without_messages_is_included(
-    client, make_user, make_listing, make_claim, make_message_thread, auth_header
+def test_list_my_threads_thread_without_messages_sorts_last(
+    client, make_user, make_listing, make_claim, make_message_thread, make_message, auth_header
 ):
     owner = make_user(name="Owner")
-    requester = make_user(name="Requester")
+    requester1 = make_user(name="Requester1")
+    requester2 = make_user(name="Requester2")
     listing = make_listing(owner)
-    claim = make_claim(requester=requester, listing=listing)
-    thread_without_message = make_message_thread(claim)
+    claim1 = make_claim(requester=requester1, listing=listing)
+    claim2 = make_claim(requester=requester2, listing=listing)
+    thread_with_message = make_message_thread(claim1)
+    thread_without_message = make_message_thread(claim2)
+    make_message(thread_with_message, requester1, content="Hello")
 
     response = client.get("/v1/me/threads", headers=auth_header(owner))
 
     assert response.status_code == 200
     body = response.json()
-    assert body[0]["thread_id"] == thread_without_message.thread_id
-    assert body[0]["messages"] == []
+    assert body[0]["thread_id"] == thread_with_message.thread_id
+    assert body[1]["thread_id"] == thread_without_message.thread_id
+    assert body[1]["messages"] == []
 
 
 # ---------------------------------------------------------------------------
