@@ -74,6 +74,7 @@ export default function Dashboard() {
       <div className="dashboard__quick-actions">
         <Link to="/listings/new"><Button variant="primary">Create Listing</Button></Link>
         <Link to="/browse"><Button variant="secondary">Browse Listings</Button></Link>
+        <Link to="/history"><Button variant="outline">Exchange History</Button></Link>
         <Link to="/messages"><Button variant="outline">Messages</Button></Link>
         <Link to="/communities"><Button variant="outline">Communities</Button></Link>
       </div>
