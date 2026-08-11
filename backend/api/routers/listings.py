@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.api.routers.moderation import _require_moderator_or_owner
 from database import get_db
 from models import Community, Listing, ListingPhoto, Photo, User
 from schemas import Category, CreateListing, DietaryRestriction, ListingResponse, ListingUpdate
@@ -28,7 +29,6 @@ def _get_listing(listing_id: int, db: Session) -> Listing:
         )
 
     return listing
-
 
 # converts a Listing object into a ListingResponse object
 # returns a ListingResponse object with photo_url set to the listing's first linked photo (a listing can have
@@ -194,7 +194,7 @@ def update_listing(
     return _serialize_listing(listing)
 
 
-# deletes a listing if the current user is the owner
+# deletes a listing if the current user is the owner, or if they are a moderator/owner of the community
 # returns a 204 No Content response if successful
 @router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_listing(
@@ -205,14 +205,15 @@ def delete_listing(
     # retrieves the listing by ID; raises a 404 error if not found
     listing = _get_listing(listing_id, db)
 
-    # checks if the current user is the owner of the listing; raises a 403 error if not
-    if listing.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this listing",
-        )
+    # the listing creator can always delete their own listing
+    if listing.user_id == current_user.user_id:
+        db.delete(listing)
+        db.commit()
+        return None
 
-    # deletes the listing and commits the changes to the database
+    # otherwise, the current user must be a moderator or owner of the community containing the listing
+    _require_moderator_or_owner(db, listing.community_id, current_user.user_id)
+
     db.delete(listing)
     db.commit()
 

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.api.routers.moderation import _get_membership
 from database import get_db
 from api.deps import get_current_user
 from models import ClaimRequest, Listing, MessageThread, Notification, Review, User
@@ -144,9 +145,22 @@ def list_claims_for_listing(
 
     query = db.query(ClaimRequest).filter(ClaimRequest.listing_id == listing_id)
 
-    # non-owners can only see their own claims on this listing, not everyone else's
-    if listing.user_id != current_user.user_id:
-        query = query.filter(ClaimRequest.requester_user_id == current_user.user_id)
+    # listing owners can see every claim on their listing
+    if listing.user_id == current_user.user_id:
+        return query.order_by(ClaimRequest.request_date.desc()).all()
+
+    # community owners and moderators can see every claim on listings in their community
+    membership = _get_membership(
+        db,
+        listing.community_id,
+        current_user.user_id,
+    )
+
+    if membership is not None and membership.role in ("owner", "moderator"):
+        return query.order_by(ClaimRequest.request_date.desc()).all()
+
+    # everyone else can only see their own claims on this listing
+    query = query.filter(ClaimRequest.requester_user_id == current_user.user_id)
 
     return query.order_by(ClaimRequest.request_date.desc()).all()
 
@@ -456,5 +470,4 @@ def complete_claim(
     db.commit()
     db.refresh(claim)
     return claim
-
 

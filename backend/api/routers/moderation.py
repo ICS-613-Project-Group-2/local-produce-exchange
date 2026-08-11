@@ -187,3 +187,4 @@ def delete_community(
     db.delete(community)
     db.commit()
     return None
+
