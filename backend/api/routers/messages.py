@@ -119,6 +119,7 @@ def list_my_threads(
         results.append(MessageThreadResponse(
             thread_id=thread.thread_id,
             claim_request_id=claim.request_id,
+            claim_status=claim.status,
             listing_id=listing.listing_id if listing else None,
             participant_ids=[claim.requester_user_id, listing.user_id] if listing else [claim.requester_user_id],
             messages=messages,
@@ -169,6 +170,7 @@ def get_message_thread(
     return MessageThreadResponse(
         thread_id=thread.thread_id,
         claim_request_id=claim.request_id,
+        claim_status=claim.status,
         listing_id=listing.listing_id,
         participant_ids=[claim.requester_user_id, listing.user_id],
         messages=messages,
@@ -191,6 +193,13 @@ def post_message(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not a participant in this claim's conversation",
+        )
+
+    # prevent messaging on closed claims (denied, cancelled, or completed)
+    if claim.status in ("denied", "cancelled", "completed"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This exchange is closed and no longer accepts messages",
         )
     
     thread = _get_thread_for_claim(db, claim)

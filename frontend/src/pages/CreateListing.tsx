@@ -30,13 +30,14 @@ interface FormErrors {
 }
 
 const CATEGORIES = [
-  { value: "Fruits", icon: "🍎" },
-  { value: "Vegetables", icon: "🥬" },
-  { value: "Herbs", icon: "🌿" },
-  { value: "Baked Goods", icon: "🍞" },
-  { value: "Pantry Items", icon: "🥫" },
-  { value: "Dairy", icon: "🥛" },
-  { value: "Other", icon: "📦" },
+  { value: "fruits", label: "Fruits", icon: "🍎" },
+  { value: "vegetables", label: "Vegetables", icon: "🥬" },
+  { value: "dairy", label: "Dairy", icon: "🥛" },
+  { value: "grains", label: "Grains", icon: "🌾" },
+  { value: "meat", label: "Meat", icon: "🥩" },
+  { value: "seafood", label: "Seafood", icon: "🐟" },
+  { value: "baked_goods", label: "Baked Goods", icon: "🍞" },
+  { value: "other", label: "Other", icon: "📦" },
 ];
 
 const STEPS = ["Details", "Freshness & Pickup", "Photo", "Community"];
@@ -244,7 +245,7 @@ export default function CreateListing() {
                         onClick={() => { setFormData((prev) => ({ ...prev, category: cat.value })); if (errors.category) setErrors((prev) => ({ ...prev, category: "" })); }}
                       >
                         <span>{cat.icon}</span>
-                        <span>{cat.value}</span>
+                        <span>{cat.label}</span>
                       </button>
                     ))}
                   </div>

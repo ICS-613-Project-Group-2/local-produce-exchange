@@ -186,6 +186,7 @@ export interface MessageResponse {
 export interface MessageThreadResponse {
   thread_id: number;
   claim_request_id: number | null;
+  claim_status: string | null;
   listing_id: number | null;
   participant_ids: number[];
   messages: MessageResponse[];
@@ -228,6 +229,7 @@ export interface CreateCommunityPayload {
   location: string;
   guidelines: string;
   is_private: boolean;
+  banner_photo_id?: number | null;
 }
 
 export function listCommunities(search?: string): Promise<CommunitiesListResponse> {

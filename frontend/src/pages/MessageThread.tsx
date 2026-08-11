@@ -101,7 +101,9 @@ export default function MessageThread() {
     );
   }
 
-  const isActive = listing && (listing.status === "available" || listing.status === "reserved");
+  // Messaging is allowed only while the claim is still active (not completed, denied, or cancelled)
+  const closedClaimStatuses = ["completed", "denied", "cancelled"];
+  const isActive = thread.claim_status ? !closedClaimStatuses.includes(thread.claim_status) : true;
 
   // Group messages by date
   const groupedMessages: { date: string; messages: MessageResponse[] }[] = [];

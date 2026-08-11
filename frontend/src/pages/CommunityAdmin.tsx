@@ -19,6 +19,8 @@ import {
   inviteToCommunity,
   approveJoinRequest,
   rejectJoinRequest,
+  uploadPhoto,
+  updateCommunity,
   type CommunityResponse,
   type MembershipResponse,
   type JoinRequestResponse,
@@ -128,7 +130,7 @@ export default function CommunityAdmin() {
       )}
       {activeTab === "requests" && <RequestsSection communityId={community.community_id} />}
       {activeTab === "invitations" && <InvitationsSection communityId={community.community_id} />}
-      {activeTab === "settings" && <SettingsSection communityName={community.name} />}
+      {activeTab === "settings" && <SettingsSection community={community} onUpdate={loadCommunity} />}
     </div>
   );
 }
@@ -469,16 +471,64 @@ function InvitationsSection({ communityId }: { communityId: number }) {
   );
 }
 
-function SettingsSection({ communityName }: { communityName: string }) {
+function SettingsSection({ community, onUpdate }: { community: CommunityResponse; onUpdate: () => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setSuccess("");
+    setUploading(true);
+    try {
+      const photo = await uploadPhoto(file);
+      await updateCommunity(community.community_id, {
+        name: community.name,
+        description: community.description,
+        location: community.location,
+        guidelines: community.guidelines,
+        is_private: community.is_private ?? true,
+        banner_photo_id: photo.photo_id,
+      });
+      setSuccess("Community photo updated!");
+      onUpdate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload photo");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="admin__section">
       <Card>
         <CardBody>
-          <h3>Community Settings</h3>
-          <p className="admin__settings-note">
-            Settings for "{communityName}" can be updated here. This section is a placeholder for future features like updating the community name, description, privacy setting, guidelines, and banner image.
-          </p>
-          <StatusBadge status="pending" label="Coming Soon" />
+          <h3>Community Photo</h3>
+          <p className="admin__settings-note">Upload a banner image for your community.</p>
+
+          {community.banner_url && (
+            <div style={{ marginBottom: "1rem" }}>
+              <img
+                src={community.banner_url}
+                alt={`${community.name} banner`}
+                style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "8px", objectFit: "cover" }}
+              />
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleBannerUpload}
+            disabled={uploading}
+          />
+
+          {uploading && <p>Uploading...</p>}
+          {error && <p style={{ color: "var(--color-error, #d32f2f)" }}>{error}</p>}
+          {success && <p style={{ color: "var(--color-success, #2e7d32)" }}>{success}</p>}
         </CardBody>
       </Card>
     </div>
