@@ -166,6 +166,7 @@ def list_claims_for_listing(
 
 
 # creates a new claim on a listing
+# the current user must be a member of the listing's community
 # returns a ClaimResponse object with the new claim's details
 @router.post("/v1/listings/{listing_id}/claims", response_model=ClaimResponse, status_code=status.HTTP_201_CREATED)
 def create_claim(
@@ -174,9 +175,30 @@ def create_claim(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # retrieve the listing being claimed
     listing = _get_listing(db, listing_id)
 
-    # listing owners can't claim their own listing
+    # check that the listing belongs to a community
+    if listing.community_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This listing does not belong to a community",
+        )
+
+    # check that the current user is a member of the listing's community
+    membership = _get_membership(
+        db,
+        listing.community_id,
+        current_user.user_id,
+    )
+
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must join this community before claiming a listing",
+        )
+
+    # listing owners cannot claim their own listing
     if listing.user_id == current_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -190,23 +212,30 @@ def create_claim(
             detail="This listing is not currently available",
         )
 
-    # the requested quantity can't exceed what's left on the listing
+    # the requested quantity cannot exceed what remains on the listing
     if created_claim.quantity_requested > listing.quantity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Requested quantity exceeds what's available on this listing",
         )
 
-    # a user can't file a new claim while they still have an active one
+    # a user cannot file another claim while they already have an active one
     existing_claim = (
         db.query(ClaimRequest)
         .filter(
             ClaimRequest.listing_id == listing_id,
             ClaimRequest.requester_user_id == current_user.user_id,
-            ClaimRequest.status.notin_((STATUS_COMPLETED, STATUS_DENIED, STATUS_CANCELLED)),
+            ClaimRequest.status.notin_(
+                (
+                    STATUS_COMPLETED,
+                    STATUS_DENIED,
+                    STATUS_CANCELLED,
+                )
+            ),
         )
         .first()
     )
+
     if existing_claim is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -223,14 +252,16 @@ def create_claim(
     )
     db.add(claim)
 
-    # flush the session to get the request_id for the new claim before creating its message thread
+    # flush the session to get the new request_id before creating its message thread
     db.flush()
 
-    # every claim gets its own message thread so the requester and listing owner can talk
-    thread = MessageThread(claim_request_id=claim.request_id)
+    # create a private message thread for the new claim
+    thread = MessageThread(
+        claim_request_id=claim.request_id,
+    )
     db.add(thread)
 
-    # flush again to get the new thread's ID, then link it back onto the claim
+    # flush again to get the new thread_id and link it to the claim
     db.flush()
     claim.message_thread_id = thread.thread_id
 
@@ -249,7 +280,7 @@ def create_claim(
 
 
 # approves a pending claim
-# only the listing owner can do this
+# only the listing owner can perform this action
 # returns a ClaimResponse object with the updated claim's details
 @router.put("/v1/claims/{claim_id}/approve", response_model=ClaimResponse)
 def approve_claim(
@@ -257,30 +288,57 @@ def approve_claim(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    claim = _get_claim(db, claim_id)
-    listing = _get_listing(db, claim.listing_id)
+    # retrieve and lock the claim row until the transaction finishes
+    claim = (
+        db.query(ClaimRequest)
+        .filter(ClaimRequest.request_id == claim_id)
+        .with_for_update()
+        .first()
+    )
 
+    if claim is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Claim not found",
+        )
+
+    # retrieve and lock the listing row until the transaction finishes
+    # this prevents another claim from being approved using the same remaining quantity
+    listing = (
+        db.query(Listing)
+        .filter(Listing.listing_id == claim.listing_id)
+        .with_for_update()
+        .first()
+    )
+
+    if listing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Listing not found",
+        )
+
+    # only the listing owner can approve a claim
     if listing.user_id != current_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the listing owner can perform this action",
         )
 
-    # user tries to approve a claim request that isn't at the REQUESTED stage
+    # only claims in the REQUESTED stage can be approved
     if claim.status != STATUS_REQUESTED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only requested claims can be approved",
         )
 
-    # guard against approving a claim for more than what's actually still available
+    # check the remaining quantity after obtaining the listing lock
     if claim.quantity_requested > listing.quantity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Not enough quantity remaining on this listing to approve this claim",
         )
 
-    # reserve the requested quantity now; it's given back if this claim is later cancelled
+    # reserve the requested quantity
     listing.quantity -= claim.quantity_requested
     if listing.quantity == 0:
         listing.status = "unavailable"
@@ -296,8 +354,10 @@ def approve_claim(
         claim_request_id=claim.request_id,
     )
 
+    # committing releases the row locks
     db.commit()
     db.refresh(claim)
+
     return claim
 
 

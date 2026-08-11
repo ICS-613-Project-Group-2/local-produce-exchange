@@ -295,7 +295,30 @@ def join_community(
     db: Session = Depends(get_db),
 ):
     # check if the community exists
-    _get_community(db, community_id)
+    community = _get_community(db, community_id)
+
+    invitation = None
+
+    if community.is_private:
+        invitation = (
+            db.query(Invitation)
+            .filter(
+                Invitation.community_id == community_id,
+                func.lower(Invitation.email) == current_user.email.lower(),
+                Invitation.status == "pending",
+                or_(
+                    Invitation.expiration_date.is_(None),
+                    Invitation.expiration_date > datetime.now(timezone.utc),
+                ),
+            )
+            .first()
+        )
+
+        if invitation is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="A valid invitation is required to join this community",
+            )
 
     # check if the user is already a member of the community
     if _get_membership(db, community_id, current_user.user_id) is not None:
@@ -309,6 +332,10 @@ def join_community(
         date_joined = datetime.now(timezone.utc),
     )
     db.add(membership)
+
+    if invitation is not None:
+        invitation.status = "accepted"
+
     db.commit()
     db.refresh(membership)
     return membership
@@ -370,61 +397,6 @@ def list_community_members(
         .all()
     )
     return members
-
-
-# removes a member from a community
-# only moderators/owners can remove members; owners cannot be removed
-# returns a 204 No Content response if successful
-@router.delete("/v1/communities/{community_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_community_member(
-    community_id: int,
-    user_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    _get_community(db, community_id)
-    _check_moderation_perms(db, community_id, current_user.user_id)
-
-    target_membership = _get_membership(db, community_id, user_id)
-    if target_membership is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not a member of this community")
-
-    if target_membership.role == "owner":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot remove the community owner")
-
-    db.delete(target_membership)
-    db.commit()
-    return None
-
-
-# updates a member's role in a community
-# only moderators/owners can change roles; owners cannot have their role changed
-# returns a MembershipResponse with the updated role
-@router.put("/v1/communities/{community_id}/members/{user_id}/role", response_model=MembershipResponse)
-def update_member_role(
-    community_id: int,
-    user_id: int,
-    role: str = Query(...),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    _get_community(db, community_id)
-    _check_moderation_perms(db, community_id, current_user.user_id)
-
-    target_membership = _get_membership(db, community_id, user_id)
-    if target_membership is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User is not a member of this community")
-
-    if target_membership.role == "owner":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change the owner's role")
-
-    if role not in ("member", "moderator", "admin"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
-
-    target_membership.role = role
-    db.commit()
-    db.refresh(target_membership)
-    return target_membership
 
 
 # ---------------------------------------------------------------------------
