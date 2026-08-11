@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.api.routers.moderation import _require_moderator_or_owner
+from api.routers.moderation import _require_moderator_or_owner
 from database import get_db
 from models import Community, Listing, ListingPhoto, Photo, User
 from schemas import Category, CreateListing, DietaryRestriction, ListingResponse, ListingUpdate

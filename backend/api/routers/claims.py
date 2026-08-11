@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.api.routers.moderation import _get_membership
+from api.routers.moderation import _get_membership
 from database import get_db
 from api.deps import get_current_user
 from models import ClaimRequest, Listing, MessageThread, Notification, Review, User
