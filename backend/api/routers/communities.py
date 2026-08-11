@@ -285,6 +285,7 @@ def update_community(
     community.location = updated_community.location
     community.guidelines = updated_community.guidelines
     community.is_private = updated_community.is_private
+    community.banner_photo_id = updated_community.banner_photo_id
 
     # commits the changes to the database and refreshes the community object to get the updated values
     db.commit()

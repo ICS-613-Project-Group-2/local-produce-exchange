@@ -169,6 +169,7 @@ class CreateCommunity(BaseModel):
     location: str
     guidelines: str
     is_private: bool = True
+    banner_photo_id: int | None = None
 
 class CommunityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -269,6 +270,7 @@ class MessageThreadResponse(BaseModel):
 
     thread_id: int
     claim_request_id: int | None
+    claim_status: str | None = None
     listing_id: int | None = None
     participant_ids: list[int] = []
     messages: list[MessageResponse] = []
