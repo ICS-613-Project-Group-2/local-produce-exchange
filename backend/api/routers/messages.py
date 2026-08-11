@@ -125,6 +125,7 @@ def list_my_threads(
         ))
 
     # sort by latest message timestamp (most recent first)
+    # Message.timestamp comes back tz-naive from the DB, so the fallback must be too
     def latest_ts(t: MessageThreadResponse):
         if t.messages:
             return t.messages[-1].timestamp or datetime.min

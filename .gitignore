@@ -16,3 +16,8 @@
 node_modules/
 dist/
 .env
+
+# Ignore pytest/coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/
