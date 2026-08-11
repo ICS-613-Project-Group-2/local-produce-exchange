@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from api.routers.moderation import _require_moderator_or_owner
 from database import get_db
-from models import Community, Listing, ListingPhoto, Photo, User
+from models import Community, Listing, ListingPhoto, Membership, Photo, User
 from schemas import Category, CreateListing, DietaryRestriction, ListingResponse, ListingUpdate
 from api.deps import get_current_user
 
@@ -30,6 +31,36 @@ def _get_listing(listing_id: int, db: Session) -> Listing:
 
     return listing
 
+# checks if the current user is allowed to view a listing
+# listings in public communities can be viewed by any authenticated user
+# listings in private communities can only be viewed by members of that community
+def _check_listing_view_perms(db: Session, listing: Listing, current_user: User) -> None:
+
+    community = db.query(Community).filter(Community.community_id == listing.community_id).first()
+
+    if community is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Community not found",
+        )
+
+    # listings in public communities can be viewed by any authenticated user
+    if not community.is_private:
+        return
+
+    # check if the current user is a member of the private community
+    membership = db.query(Membership).filter(
+        Membership.community_id == community.community_id,
+        Membership.user_id == current_user.user_id,
+    ).first()
+
+    # return a 404 instead of a 403 so the existence of a private listing is not revealed
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Listing not found",
+        )
+
 # converts a Listing object into a ListingResponse object
 # returns a ListingResponse object with photo_url set to the listing's first linked photo (a listing can have
 # several photos linked via listing_photos, but the API only surfaces one cover image), or None if it has none
@@ -43,7 +74,8 @@ def _serialize_listing(listing: Listing) -> ListingResponse:
 # ------------------------------- API METHODS -------------------------------
 # ---------------------------------------------------------------------------
 
-# creates a new listing for the current user, optionally attached to a community and a photo
+# creates a new listing for the current user in a community they are a member of
+# optionally attaches an uploaded photo to the listing
 # returns a ListingResponse object with the new listing's details
 @router.post("", response_model=ListingResponse, status_code=status.HTTP_201_CREATED)
 def create_listing(
@@ -51,31 +83,57 @@ def create_listing(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # if a community was specified, check that it exists first so we can return a clear 400 error
-    # instead of letting the insert below fail on the community_id foreign key
-    if listing_form.community_id is not None:
-        community = (
-            db.query(Community)
-            .filter(Community.community_id == listing_form.community_id)
+    # every listing must belong to a community
+    if listing_form.community_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A community is required to create a listing",
+        )
+
+    # check that the selected community exists
+    community = (
+        db.query(Community)
+        .filter(Community.community_id == listing_form.community_id)
+        .first()
+    )
+
+    if community is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Community not found",
+        )
+
+    # check that the current user is a member of the selected community
+    membership = (
+        db.query(Membership)
+        .filter(
+            Membership.community_id == listing_form.community_id,
+            Membership.user_id == current_user.user_id,
+        )
+        .first()
+    )
+
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be a member of this community to create a listing",
+        )
+
+    # the photo must already exist before it can be linked to the listing
+    if listing_form.photo_id is not None:
+        photo = (
+            db.query(Photo)
+            .filter(Photo.photo_id == listing_form.photo_id)
             .first()
         )
-        if not community:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Community {listing_form.community_id} does not exist",
-            )
 
-    # same reasoning for the photo: it must already exist (uploaded via POST /v1/photos)
-    # before we can link it to this listing
-    if listing_form.photo_id is not None:
-        photo = db.query(Photo).filter(Photo.photo_id == listing_form.photo_id).first()
-        if not photo:
+        if photo is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Photo {listing_form.photo_id} does not exist",
             )
 
-    # create listing model instance and add to database
+    # create listing model instance and add it to the database
     new_listing = Listing(
         user_id=current_user.user_id,
         community_id=listing_form.community_id,
@@ -90,16 +148,18 @@ def create_listing(
     )
     db.add(new_listing)
 
-    # flush (without committing) so new_listing.listing_id is generated now; the listing_photos
-    # row below needs that ID as a foreign key before the outer commit happens
+    # flush the session so the listing_id is generated before linking the photo
     db.flush()
 
     # link the uploaded photo to the listing, if one was provided
     if listing_form.photo_id is not None:
-        db.add(ListingPhoto(listing_id=new_listing.listing_id, photo_id=listing_form.photo_id))
+        listing_photo = ListingPhoto(
+            listing_id=new_listing.listing_id,
+            photo_id=listing_form.photo_id,
+        )
+        db.add(listing_photo)
 
-    # commit the changes to the database and refresh the listing object to get the updated values
-    # (e.g. the server-generated status and date_posted defaults)
+    # commit the changes and refresh the listing to retrieve its generated values
     db.commit()
     db.refresh(new_listing)
 
@@ -107,24 +167,38 @@ def create_listing(
 
 
 # lists listings with optional filtering by community, category, status, dietary restrictions, and search term
+# public community listings are visible to every authenticated user
+# private community listings are only visible to members of that community
 # returns a list of ListingResponse objects matching the filters, ordered by most recently posted
 @router.get("", response_model=list[ListingResponse])
 def list_listings(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     community_id: int | None = None,
     category: Category | None = None,
     status_filter: str | None = None,
     dietary_restriction: DietaryRestriction | None = None,
     search: str | None = None,
 ):
-    query = db.query(Listing)
+    # finds the IDs of communities the current user is a member of
+    my_community_ids = (
+        db.query(Membership.community_id)
+        .filter(Membership.user_id == current_user.user_id)
+    )
+
+    # only includes listings from public communities or communities the current user is a member of
+    query = db.query(Listing).join(Community, Community.community_id == Listing.community_id).filter(
+        or_(
+            Community.is_private.is_(False),
+            Listing.community_id.in_(my_community_ids),
+        )
+    )
 
     # filters the query down by community, if provided
     if community_id is not None:
         query = query.filter(Listing.community_id == community_id)
 
-    # filters the query down by category, if provided; ilike so the frontend's category value
-    # doesn't have to match the stored casing exactly
+    # filters the query down by category, if provided
     if category is not None:
         query = query.filter(Listing.category.ilike(category))
 
@@ -133,7 +207,6 @@ def list_listings(
         query = query.filter(Listing.status == status_filter)
 
     # filters the query down to listings whose dietary_restrictions array contains this value, if provided
-    # (e.g. ?dietary_restriction=vegan surfaces every listing tagged vegan, regardless of what else it's tagged with)
     if dietary_restriction is not None:
         query = query.filter(Listing.dietary_restrictions.any(dietary_restriction))
 
@@ -150,13 +223,22 @@ def list_listings(
 
 
 # retrieves a listing by ID
+# public community listings can be viewed by any authenticated user
+# private community listings can only be viewed by members of that community
 # returns a ListingResponse object with the listing's details
 @router.get("/{listing_id}", response_model=ListingResponse)
 def get_listing(
     listing_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    return _serialize_listing(_get_listing(listing_id, db))
+    # retrieves the listing by ID; raises a 404 error if not found
+    listing = _get_listing(listing_id, db)
+
+    # checks if the current user is allowed to view the listing
+    _check_listing_view_perms(db, listing, current_user)
+
+    return _serialize_listing(listing)
 
 
 # updates a listing's details if the current user is the owner
