@@ -1,9 +1,11 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 
+from config import settings
 from database import get_db
 from api.deps import get_current_user
 from models import Community, CommunityPost, JoinRequest, Membership, Invitation, Photo, User
@@ -15,6 +17,7 @@ from schemas import (
     CommunitiesListResponse,
     InviteUser,
     InvitationResponse,
+    InvitationPreview,
     JoinRequestResponse,
     MembershipResponse,
 )
@@ -65,7 +68,7 @@ def _check_moderation_perms(db: Session, community_id: int, user_id: int) -> Mem
 
 
 # checks if a user has a pending invitation to a community
-# returns True if the user has a pending invitation, False otherwise    
+# returns True if the user has a pending invitation, False otherwise
 def _has_pending_invitation(db: Session, community_id: int, email: str) -> bool:
     now = datetime.now(timezone.utc)
     return (
@@ -81,10 +84,56 @@ def _has_pending_invitation(db: Session, community_id: int, email: str) -> bool:
     )
 
 
-# adds member count and banner photo URL to a Community object
-# returns a CommunityResponse object with the member count and banner photo URL
-def _community_to_community_response(db: Session, community: Community) -> CommunityResponse:
- 
+# retrieves an invitation by its token
+# returns an Invitation object if found; raises a 404 error if not
+def _get_invitation_by_token(db: Session, token: str) -> Invitation:
+    invitation = db.query(Invitation).filter(Invitation.token == token).first()
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found")
+    return invitation
+
+
+# checks if an invitation has expired
+# returns True if the invitation has an expiration date in the past, False otherwise
+def _invitation_is_expired(invitation: Invitation) -> bool:
+    if invitation.expiration_date is None:
+        return False
+    expiration_date = invitation.expiration_date
+    if expiration_date.tzinfo is None:
+        expiration_date = expiration_date.replace(tzinfo=timezone.utc)
+    return expiration_date <= datetime.now(timezone.utc)
+
+
+# builds the shareable invite link for an invitation, pointing to the frontend's accept page
+def _invite_link(invitation: Invitation) -> str:
+    return f"{settings.FRONTEND_URL}/invite/{invitation.token}"
+
+
+# turns an Invitation object into an InvitationResponse, including its shareable invite link
+def _invitation_to_response(invitation: Invitation) -> InvitationResponse:
+    return InvitationResponse(
+        invitation_id=invitation.invitation_id,
+        community_id=invitation.community_id,
+        sender_user_id=invitation.sender_user_id,
+        email=invitation.email,
+        status=invitation.status,
+        sent_date=invitation.sent_date,
+        expiration_date=invitation.expiration_date,
+        invite_link=_invite_link(invitation),
+    )
+
+
+# adds member count, banner photo URL, and the current user's role to a Community object
+# returns a CommunityResponse object with the member count, banner photo URL, and my_role set
+def _community_to_community_response(
+    db: Session, community: Community, current_user_id: int | None = None
+) -> CommunityResponse:
+
+    my_role = None
+    if current_user_id is not None:
+        membership = _get_membership(db, community.community_id, current_user_id)
+        my_role = membership.role if membership is not None else None
+
     response = CommunityResponse(
         community_id = community.community_id,
         name = community.name,
@@ -93,8 +142,9 @@ def _community_to_community_response(db: Session, community: Community) -> Commu
         guidelines = community.guidelines,
         is_private = community.is_private,
         member_count = _num_members(db, community.community_id),
+        my_role = my_role,
     )
- 
+
     if community.banner_photo_id is not None:
         photo = (
             db.query(Photo)
@@ -151,8 +201,12 @@ def list_communities(
     # turns every Community object into a CommunityResponse object (computes member count and links banner photo)
     # and returns a CommunitiesListResponse object with the two lists of CommunityResponse objects
     return CommunitiesListResponse(
-        my_communities = [_community_to_community_response(db, community) for community in my_communities],
-        public_communities = [_community_to_community_response(db, community) for community in public_communities],
+        my_communities = [
+            _community_to_community_response(db, community, current_user.user_id) for community in my_communities
+        ],
+        public_communities = [
+            _community_to_community_response(db, community, current_user.user_id) for community in public_communities
+        ],
     )
 
 
@@ -189,7 +243,7 @@ def create_community(
     # commit the changes to the database and refresh the community object to get the updated values
     db.commit()
     db.refresh(community)
-    return _community_to_community_response(db, community)
+    return _community_to_community_response(db, community, current_user.user_id)
 
 
 # retrieves a community by ID and checks if the current user is allowed to view it (if it's private)
@@ -207,7 +261,7 @@ def get_community(
     if community.is_private and _get_membership(db, community_id, current_user.user_id) is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This community is private")
 
-    return _community_to_community_response(db, community)
+    return _community_to_community_response(db, community, current_user.user_id)
 
 
 # updates a community's details if the current user is a moderator or higher
@@ -276,6 +330,7 @@ def invite_to_community(
         community_id = community_id,
         sender_user_id = current_user.user_id,
         email = invite_user_form.email,
+        token = secrets.token_urlsafe(32),
         status = "pending",
         sent_date = now,
         expiration_date = now + timedelta(days=7),
@@ -284,8 +339,105 @@ def invite_to_community(
     db.commit()
     db.refresh(invitation)
 
-    # TODO: send actual invitation email here
-    return invitation
+    # the invite link (`invitation.invite_link`) is what gets emailed/shared with the invitee;
+    # actual email delivery is not wired up yet, so admins share the link themselves for now
+    return _invitation_to_response(invitation)
+
+
+# looks up an invitation by its token for the invite landing page
+# public endpoint (no auth) so an invitee can see what they're being invited to before signing up/logging in
+# returns an InvitationPreview object with community and inviter details
+@router.get("/v1/invitations/{token}", response_model=InvitationPreview)
+def preview_invitation(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    invitation = _get_invitation_by_token(db, token)
+    community = _get_community(db, invitation.community_id)
+
+    inviter = (
+        db.query(User).filter(User.user_id == invitation.sender_user_id).first()
+        if invitation.sender_user_id is not None
+        else None
+    )
+
+    return InvitationPreview(
+        community_id=community.community_id,
+        community_name=community.name,
+        community_description=community.description,
+        inviter_name=inviter.name if inviter is not None else None,
+        email=invitation.email,
+        status=invitation.status,
+        expiration_date=invitation.expiration_date,
+        is_expired=_invitation_is_expired(invitation),
+    )
+
+
+# accepts an invitation by its token, joining the current user to the invitation's community
+# returns a MembershipResponse object with the new membership's details
+@router.post("/v1/invitations/{token}/accept", response_model=MembershipResponse, status_code=status.HTTP_201_CREATED)
+def accept_invitation(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    invitation = _get_invitation_by_token(db, token)
+
+    if invitation.status != "pending":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This invitation is no longer pending")
+
+    if _invitation_is_expired(invitation):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This invitation has expired")
+
+    if invitation.email.lower() != current_user.email.lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This invitation was sent to a different email address",
+        )
+
+    # check if the community still exists
+    _get_community(db, invitation.community_id)
+
+    if _get_membership(db, invitation.community_id, current_user.user_id) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You are already a member of this community")
+
+    membership = Membership(
+        user_id = current_user.user_id,
+        community_id = invitation.community_id,
+        role = "member",
+        date_joined = datetime.now(timezone.utc),
+    )
+    db.add(membership)
+
+    invitation.status = "accepted"
+
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
+# declines an invitation by its token
+# returns a 204 No Content response if successful
+@router.post("/v1/invitations/{token}/decline", status_code=status.HTTP_204_NO_CONTENT)
+def decline_invitation(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    invitation = _get_invitation_by_token(db, token)
+
+    if invitation.status != "pending":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This invitation is no longer pending")
+
+    if invitation.email.lower() != current_user.email.lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This invitation was sent to a different email address",
+        )
+
+    invitation.status = "declined"
+    db.commit()
+    return None
 
 
 @router.post("/v1/communities/{community_id}/join", response_model=MembershipResponse, status_code=status.HTTP_201_CREATED)
@@ -376,7 +528,7 @@ def leave_community(
 # ---------------------------------------------------------------------------
 
 # lists all members of a community
-# the user must be a member themselves to see the list
+# private communities require the viewer to already be a member; public communities are open to any logged-in user
 # returns a list of MembershipResponse objects
 @router.get("/v1/communities/{community_id}/members", response_model=list[MembershipResponse])
 def list_community_members(
@@ -384,11 +536,10 @@ def list_community_members(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_community(db, community_id)
+    community = _get_community(db, community_id)
 
-    # the user must be a member of the community to see the member list
-    if _get_membership(db, community_id, current_user.user_id) is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member to view this community's members")
+    if community.is_private and _get_membership(db, community_id, current_user.user_id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This community is private")
 
     members = (
         db.query(Membership)

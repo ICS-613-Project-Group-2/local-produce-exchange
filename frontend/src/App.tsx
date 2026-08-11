@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import InviteAccept from "./pages/InviteAccept";
 import BrowseListings from "./pages/BrowseListings";
 import ListingDetails from "./pages/ListingDetails";
 import CreateListing from "./pages/CreateListing";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/invite/:token" element={<InviteAccept />} />
 
         {/* Authenticated routes */}
         <Route path="/browse" element={<BrowseListings />} />

@@ -14,7 +14,8 @@ import {
   getJoinRequests,
   getUser,
   removeCommunityMember,
-  updateMemberRole,
+  promoteMember,
+  demoteMember,
   inviteToCommunity,
   approveJoinRequest,
   rejectJoinRequest,
@@ -27,6 +28,8 @@ import {
 import "./CommunityAdmin.css";
 
 type AdminTab = "members" | "requests" | "invitations" | "settings";
+
+const MODERATOR_ROLES = ["owner", "moderator"];
 
 export default function CommunityAdmin() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +79,9 @@ export default function CommunityAdmin() {
     );
   }
 
-  if (!community || forbidden) {
+  const isModerator = !!community && community.my_role !== null && MODERATOR_ROLES.includes(community.my_role);
+
+  if (!community || forbidden || !isModerator) {
     return (
       <div className="page-container">
         <EmptyState
@@ -114,7 +119,13 @@ export default function CommunityAdmin() {
         ))}
       </div>
 
-      {activeTab === "members" && <MembersSection communityId={community.community_id} currentUserId={user?.user_id || 0} />}
+      {activeTab === "members" && (
+        <MembersSection
+          communityId={community.community_id}
+          currentUserId={user?.user_id || 0}
+          isOwner={community.my_role === "owner"}
+        />
+      )}
       {activeTab === "requests" && <RequestsSection communityId={community.community_id} />}
       {activeTab === "invitations" && <InvitationsSection communityId={community.community_id} />}
       {activeTab === "settings" && <SettingsSection communityName={community.name} />}
@@ -122,7 +133,15 @@ export default function CommunityAdmin() {
   );
 }
 
-function MembersSection({ communityId, currentUserId }: { communityId: number; currentUserId: number }) {
+function MembersSection({
+  communityId,
+  currentUserId,
+  isOwner,
+}: {
+  communityId: number;
+  currentUserId: number;
+  isOwner: boolean;
+}) {
   const [members, setMembers] = useState<MembershipResponse[]>([]);
   const [users, setUsers] = useState<Record<number, User>>({});
   const [loading, setLoading] = useState(true);
@@ -158,16 +177,30 @@ function MembersSection({ communityId, currentUserId }: { communityId: number; c
     }
   }
 
-  async function handleRoleChange(userId: number, newRole: string) {
+  async function handlePromote(userId: number) {
     try {
-      const updated = await updateMemberRole(communityId, userId, newRole);
+      const updated = await promoteMember(communityId, userId);
       setMembers((prev) =>
         prev.map((m) => (m.user_id === userId ? { ...m, role: updated.role } : m))
       );
-      setSuccessMsg("Member role updated.");
+      setSuccessMsg("Member promoted to moderator.");
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch {
-      setSuccessMsg("Failed to update role.");
+      setSuccessMsg("Failed to promote member.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    }
+  }
+
+  async function handleDemote(userId: number) {
+    try {
+      const updated = await demoteMember(communityId, userId);
+      setMembers((prev) =>
+        prev.map((m) => (m.user_id === userId ? { ...m, role: updated.role } : m))
+      );
+      setSuccessMsg("Moderator demoted to member.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch {
+      setSuccessMsg("Failed to demote member.");
       setTimeout(() => setSuccessMsg(""), 3000);
     }
   }
@@ -197,6 +230,9 @@ function MembersSection({ communityId, currentUserId }: { communityId: number; c
           const memberUser = users[membership.user_id];
           if (!memberUser) return null;
           const isCurrentUser = membership.user_id === currentUserId;
+          const isTargetOwner = membership.role === "owner";
+          const isTargetModerator = membership.role === "moderator";
+          const canKick = !isCurrentUser && !isTargetOwner && (isOwner || !isTargetModerator);
           return (
             <div key={membership.user_id} className="admin__member-row">
               <div className="admin__member-info">
@@ -211,17 +247,23 @@ function MembersSection({ communityId, currentUserId }: { communityId: number; c
                 </div>
               </div>
               <div className="admin__member-actions">
-                <select
-                  className="form-field__input admin__role-select"
-                  value={membership.role || "member"}
-                  onChange={(e) => handleRoleChange(membership.user_id, e.target.value)}
-                  disabled={isCurrentUser}
-                >
-                  <option value="member">Member</option>
-                  <option value="moderator">Moderator</option>
-                  <option value="admin">Admin</option>
-                </select>
-                {!isCurrentUser && (
+                {isTargetOwner ? (
+                  <StatusBadge status="approved" label="Owner" />
+                ) : (
+                  <StatusBadge status={isTargetModerator ? "approved" : "pending"} label={isTargetModerator ? "Moderator" : "Member"} />
+                )}
+                {isOwner && !isCurrentUser && !isTargetOwner && (
+                  isTargetModerator ? (
+                    <Button variant="outline" size="sm" onClick={() => handleDemote(membership.user_id)}>
+                      Demote
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => handlePromote(membership.user_id)}>
+                      Promote
+                    </Button>
+                  )
+                )}
+                {canKick && (
                   <Button variant="danger" size="sm" onClick={() => setKickModal(membership.user_id)}>
                     Remove
                   </Button>
@@ -344,8 +386,9 @@ function RequestsSection({ communityId }: { communityId: number }) {
 function InvitationsSection({ communityId }: { communityId: number }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -359,11 +402,12 @@ function InvitationsSection({ communityId }: { communityId: number }) {
     }
     setError("");
     setSending(true);
+    setInviteLink(null);
+    setCopied(false);
     try {
-      await inviteToCommunity(communityId, email);
-      setSent(true);
+      const invitation = await inviteToCommunity(communityId, email);
+      setInviteLink(invitation.invite_link);
       setEmail("");
-      setTimeout(() => setSent(false), 3000);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -375,13 +419,35 @@ function InvitationsSection({ communityId }: { communityId: number }) {
     }
   }
 
+  function handleCopy() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="admin__section">
-      {sent && <div className="admin__success">Invitation sent successfully!</div>}
+      {inviteLink && (
+        <div className="admin__success">
+          <p>Invitation created! Copy this link and share it with the invitee:</p>
+          <div className="admin__invite-link-row">
+            <Input
+              readOnly
+              value={inviteLink}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              {copied ? "Copied!" : "Copy Link"}
+            </Button>
+          </div>
+        </div>
+      )}
       <Card>
         <CardBody>
           <h3>Invite a Member</h3>
-          <p className="admin__invite-desc">Send an email invitation to a trusted person. They'll receive a link to join this community.</p>
+          <p className="admin__invite-desc">Send a invitation link to a trusted person.</p>
           <form onSubmit={handleInvite} className="admin__invite-form">
             <FormField label="Email Address" htmlFor="invite-email" error={error}>
               <Input

@@ -127,8 +127,8 @@ def list_my_threads(
     # sort by latest message timestamp (most recent first)
     def latest_ts(t: MessageThreadResponse):
         if t.messages:
-            return t.messages[-1].timestamp or datetime.min.replace(tzinfo=timezone.utc)
-        return datetime.min.replace(tzinfo=timezone.utc)
+            return t.messages[-1].timestamp or datetime.min
+        return datetime.min
 
     results.sort(key=latest_ts, reverse=True)
     return results
