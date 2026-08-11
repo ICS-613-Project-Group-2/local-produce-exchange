@@ -16,18 +16,21 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Lazy-initialize from the token synchronously during render, instead of
+  // resetting it to false inside the effect. If there's no token, we're
+  // never "loading" in the first place, so there's nothing to synchronize.
+  const [isLoading, setIsLoading] = useState(() => !!getToken());
 
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      setIsLoading(false);
       return;
     }
 
@@ -54,15 +57,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function refreshUser() {
+    try {
+      const me = await getMe();
+      setUser(me);
+    } catch {
+      // If refresh fails, leave user as-is
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, isLoggedIn: !!user, isLoading, login, register, logout }}
+      value={{ user, isLoggedIn: !!user, isLoading, login, register, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- useAuth is consumed across many files; moving it would require updating every import site
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {
