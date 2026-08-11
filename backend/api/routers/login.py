@@ -9,11 +9,9 @@ from core.auth import hash_password, verify_password, create_access_tkn
 from models import Photo, User
 from schemas import RegisterUser, GetUser, LoginUser, TokenResponse
 
-
 router = APIRouter(
     prefix="/v1",
 )
-
 
 @router.post("/register", response_model=GetUser, status_code=status.HTTP_201_CREATED)
 def register_user(
