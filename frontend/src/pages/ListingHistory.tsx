@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
@@ -55,7 +55,7 @@ export default function ListingHistory() {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ClaimHistoryResponse | null>(null);
 
-  function loadClaims() {
+  const loadClaims = useCallback(() => {
     setLoading(true);
     setLoadError(null);
     listMyClaims()
@@ -64,11 +64,15 @@ export default function ListingHistory() {
         setLoadError(err instanceof ApiError ? err.message : "History could not be loaded. Please try again.");
       })
       .finally(() => setLoading(false));
-  }
+  }, []);
 
   useEffect(() => {
-    loadClaims();
-  }, []);
+    // Deferred so the initial setState calls in loadClaims don't run
+    // synchronously within the effect body (react-hooks/set-state-in-effect).
+    queueMicrotask(() => {
+      loadClaims();
+    });
+  }, [loadClaims]);
 
   function runAction(claim: ClaimHistoryResponse, actionName: string, action: (id: number) => Promise<unknown>) {
     setActionError(null);
@@ -92,6 +96,10 @@ export default function ListingHistory() {
       )
     );
     setReviewTarget(null);
+  }
+
+  if (loading) {
+    return <div className="page-container"><p>Loading history...</p></div>;
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import SearchBar from "../components/ui/SearchBar";
@@ -6,33 +6,53 @@ import Button from "../components/ui/Button";
 import Card, { CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { mockCommunities, getMembersByCommunity, getUserById } from "../data/mockData";
+import {
+  listCommunities,
+  joinCommunity,
+  type CommunityResponse,
+} from "../lib/api";
 import "./Communities.css";
-
-// Simulate: user is a member of communities 1, 2, 4
-const USER_COMMUNITY_IDS = [1, 2, 4];
 
 export default function Communities() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
+  const [publicCommunities, setPublicCommunities] = useState<CommunityResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Only show public communities
-  const publicCommunities = mockCommunities.filter((c) => !c.is_private);
+  async function loadCommunities() {
+    try {
+      const data = await listCommunities(searchQuery || undefined);
+      setMyCommunities(data.my_communities);
+      setPublicCommunities(data.public_communities);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load communities");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const filteredCommunities = searchQuery
-    ? publicCommunities.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : publicCommunities;
-
-  // Separate into joined and available
-  const joinedCommunities = filteredCommunities.filter((c) => USER_COMMUNITY_IDS.includes(c.community_id));
-  const availableCommunities = filteredCommunities.filter((c) => !USER_COMMUNITY_IDS.includes(c.community_id));
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- false positive: all setState calls in loadCommunities happen after an await (see facebook/react#34905)
+    loadCommunities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadCommunities is redefined each render; searchQuery is the real trigger
+  }, [searchQuery]);
 
   function handleSearch(query: string) {
     setSearchQuery(query);
   }
+
+  async function handleJoin(communityId: number) {
+    try {
+      await joinCommunity(communityId);
+      await loadCommunities();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to join community");
+    }
+  }
+
+  const noResults = myCommunities.length === 0 && publicCommunities.length === 0;
 
   return (
     <div className="page-container">
@@ -53,7 +73,16 @@ export default function Communities() {
         />
       </div>
 
-      {filteredCommunities.length === 0 ? (
+      {loading ? (
+        <p className="communities__loading">Loading communities...</p>
+      ) : error ? (
+        <EmptyState
+          icon={<span>⚠️</span>}
+          title="Something went wrong"
+          description={error}
+          action={<Button variant="primary" onClick={loadCommunities}>Try Again</Button>}
+        />
+      ) : noResults ? (
         <EmptyState
           icon={<span>🏘️</span>}
           title="No communities found"
@@ -66,25 +95,23 @@ export default function Communities() {
         />
       ) : (
         <>
-          {/* My Communities */}
-          {joinedCommunities.length > 0 && (
+          {myCommunities.length > 0 && (
             <section className="communities__section">
               <h2 className="communities__section-title">My Communities</h2>
               <div className="communities__grid">
-                {joinedCommunities.map((community) => (
+                {myCommunities.map((community) => (
                   <CommunityCard key={community.community_id} community={community} status="joined" />
                 ))}
               </div>
             </section>
           )}
 
-          {/* Available Communities */}
-          {availableCommunities.length > 0 && (
+          {publicCommunities.length > 0 && (
             <section className="communities__section">
               <h2 className="communities__section-title">Available to Join</h2>
               <div className="communities__grid">
-                {availableCommunities.map((community) => (
-                  <CommunityCard key={community.community_id} community={community} status="none" />
+                {publicCommunities.map((community) => (
+                  <CommunityCard key={community.community_id} community={community} status="none" onJoin={handleJoin} />
                 ))}
               </div>
             </section>
@@ -95,10 +122,15 @@ export default function Communities() {
   );
 }
 
-function CommunityCard({ community, status }: { community: typeof mockCommunities[0]; status: "joined" | "none" }) {
-  const members = getMembersByCommunity(community.community_id);
-  const memberAvatars = members.slice(0, 4).map((m) => getUserById(m.user_id)).filter(Boolean);
-
+function CommunityCard({
+  community,
+  status,
+  onJoin,
+}: {
+  community: CommunityResponse;
+  status: "joined" | "none";
+  onJoin?: (id: number) => void;
+}) {
   return (
     <Card className="communities__card">
       {community.banner_url && (
@@ -115,20 +147,8 @@ function CommunityCard({ community, status }: { community: typeof mockCommunitie
           <p className="communities__card-description">{community.description}</p>
         )}
         <div className="communities__card-footer-info">
-          <div className="communities__member-avatars">
-            {memberAvatars.map((user) =>
-              user?.profile_photo_url ? (
-                <img key={user.user_id} src={user.profile_photo_url} alt={user.name} className="communities__member-avatar" />
-              ) : (
-                <div key={user?.user_id} className="communities__member-avatar communities__member-avatar--placeholder">
-                  {user?.name[0]}
-                </div>
-              )
-            )}
-          </div>
-          <span className="communities__card-members">
-            {community.member_count} members
-          </span>
+          <span className="communities__card-members">👥 {community.member_count} members</span>
+          {community.location && <span className="communities__card-location">📍 {community.location}</span>}
         </div>
       </CardBody>
       <CardFooter>
@@ -140,7 +160,9 @@ function CommunityCard({ community, status }: { community: typeof mockCommunitie
             <span className="communities__joined-label">✓ Joined</span>
           </>
         ) : (
-          <Button variant="primary" size="sm">Join Community</Button>
+          <Button variant="primary" size="sm" onClick={() => onJoin?.(community.community_id)}>
+            Join Community
+          </Button>
         )}
       </CardFooter>
     </Card>

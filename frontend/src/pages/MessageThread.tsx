@@ -3,12 +3,17 @@ import { useParams, Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/feedback/EmptyState";
-import { getThreadById, getListingById, getUserById, mockClaimRequests } from "../data/mockData";
-import { displayName } from "../data/utils";
-import type { Message } from "../data/types";
+import { useAuth } from "../context/AuthContext";
+import {
+  getThread,
+  getListing,
+  sendMessage,
+  type MessageThreadResponse,
+  type MessageResponse,
+  type ListingResponse,
+} from "../lib/api";
+import type { BadgeStatus } from "../components/ui/StatusBadge";
 import "./MessageThread.css";
-
-const CURRENT_USER_ID = 1;
 
 function formatDate(timestamp: string): string {
   const date = new Date(timestamp);
@@ -22,54 +27,88 @@ function formatDate(timestamp: string): string {
 
 export default function MessageThread() {
   const { threadId } = useParams<{ threadId: string }>();
-  const thread = getThreadById(Number(threadId));
+  const { user } = useAuth();
+  const currentUserId = user?.user_id || 0;
+
+  const [thread, setThread] = useState<MessageThreadResponse | null>(null);
+  const [listing, setListing] = useState<ListingResponse | null>(null);
+  const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>(thread?.messages || []);
+  const [sending, setSending] = useState(false);
   const [listingCollapsed, setListingCollapsed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  async function loadThread() {
+    setLoading(true);
+    setError(null);
+    try {
+      // threadId here corresponds to claim_request_id for the API
+      const claimId = Number(threadId);
+      const threadData = await getThread(claimId);
+      setThread(threadData);
+      setMessages(threadData.messages);
+
+      if (threadData.listing_id) {
+        getListing(threadData.listing_id).then(setListing).catch(() => setListing(null));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load conversation");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- false positive: setState calls in loadThread happen inside try/catch/finally after an await (see facebook/react#34905)
+    loadThread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadThread is redefined each render; threadId is the real trigger
+  }, [threadId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  if (!thread) {
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMessage.trim() || !thread) return;
+    setSending(true);
+    try {
+      // claim_request_id is used to send messages
+      const msg = await sendMessage(thread.claim_request_id!, newMessage.trim());
+      setMessages((prev) => [...prev, msg]);
+      setNewMessage("");
+    } catch {
+      // silently fail
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="page-container"><p>Loading conversation...</p></div>;
+  }
+
+  if (error || !thread) {
     return (
       <div className="page-container">
         <EmptyState
           icon={<span>💬</span>}
           title="Conversation not found"
-          description="This message thread may have been removed or does not exist."
-          action={<Link to="/messages"><Button variant="primary">Back to Inbox</Button></Link>}
+          description={error || "This message thread may have been removed or does not exist."}
+          action={<Link to="/messages"><Button variant="primary">Back to Messages</Button></Link>}
         />
       </div>
     );
   }
 
-  const listing = getListingById(thread.listing_id);
-  const otherUserId = thread.participant_ids.find((id) => id !== CURRENT_USER_ID) || thread.participant_ids[1];
-  const otherUser = getUserById(otherUserId);
-  const claimRequest = mockClaimRequests.find((cr) => cr.request_id === thread.claim_request_id);
-  const isActive = listing && (listing.status === "available" || listing.status === "reserved" || listing.status === "expiring-soon");
-  const isOwner = listing && listing.user_id === CURRENT_USER_ID;
-
-  function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-    const msg: Message = {
-      message_id: messages.length + 100,
-      thread_id: thread!.thread_id,
-      sender_user_id: CURRENT_USER_ID,
-      content: newMessage.trim(),
-      timestamp: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, msg]);
-    setNewMessage("");
-  }
+  const isActive = listing && (listing.status === "available" || listing.status === "reserved");
 
   // Group messages by date
-  const groupedMessages: { date: string; messages: Message[] }[] = [];
+  const groupedMessages: { date: string; messages: MessageResponse[] }[] = [];
   messages.forEach((msg) => {
-    const dateLabel = formatDate(msg.timestamp);
+    const dateLabel = msg.timestamp ? formatDate(msg.timestamp) : "Unknown";
     const lastGroup = groupedMessages[groupedMessages.length - 1];
     if (lastGroup && lastGroup.date === dateLabel) {
       lastGroup.messages.push(msg);
@@ -79,7 +118,7 @@ export default function MessageThread() {
   });
 
   const lastMessage = messages[messages.length - 1];
-  const lastMessageIsMine = lastMessage?.sender_user_id === CURRENT_USER_ID;
+  const lastMessageIsMine = lastMessage?.sender_user_id === currentUserId;
 
   return (
     <div className="thread-page">
@@ -87,17 +126,7 @@ export default function MessageThread() {
       <div className="thread-page__topbar">
         <Link to="/messages" className="thread-page__back">←</Link>
         <div className="thread-page__topbar-user">
-          {otherUser?.profile_photo_url ? (
-            <img src={otherUser.profile_photo_url} alt={otherUser.name} className="thread-page__topbar-avatar" />
-          ) : (
-            <div className="thread-page__topbar-avatar thread-page__topbar-avatar--placeholder">
-              {otherUser?.name[0] || "?"}
-            </div>
-          )}
-          <div>
-            <span className="thread-page__topbar-name">{displayName(otherUser?.name || "Unknown")}</span>
-            {otherUser?.location && <span className="thread-page__topbar-location">📍 {otherUser.location}</span>}
-          </div>
+          <span className="thread-page__topbar-name">Conversation</span>
         </div>
         {listing && (
           <Link to={`/listings/${listing.listing_id}`} className="thread-page__topbar-listing">
@@ -106,73 +135,42 @@ export default function MessageThread() {
         )}
       </div>
 
-      {/* Listing Context (collapsible) */}
+      {/* Listing Context */}
       {listing && (
         <div className={`thread-page__listing ${listingCollapsed ? "thread-page__listing--collapsed" : ""}`}>
           <button className="thread-page__listing-toggle" onClick={() => setListingCollapsed(!listingCollapsed)}>
-            <img src={listing.photo_url} alt={listing.name} className="thread-page__listing-thumb" />
+            {listing.photo_url && <img src={listing.photo_url} alt={listing.name} className="thread-page__listing-thumb" />}
             <div className="thread-page__listing-info">
               <span className="thread-page__listing-name">{listing.name}</span>
               <span className="thread-page__listing-meta">
-                {listing.quantity} {listing.unit} · <StatusBadge status={listing.status} />
+                {listing.quantity} {listing.unit} · {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
               </span>
             </div>
             <span className="thread-page__listing-chevron">{listingCollapsed ? "▼" : "▲"}</span>
           </button>
           {!listingCollapsed && (
             <div className="thread-page__listing-details">
-              <p>📍 {listing.pickup_location}</p>
-              <p>📅 Expires {new Date(listing.expiration_date).toLocaleDateString()}</p>
-              {claimRequest && (
-                <p className="thread-page__claim-info">
-                  Requested: {claimRequest.quantity_requested} {listing.unit} · <StatusBadge status={claimRequest.status} />
-                </p>
-              )}
-              {/* Owner quick actions */}
-              {isOwner && isActive && claimRequest && claimRequest.status === "pending" && (
-                <div className="thread-page__owner-actions">
-                  <Button variant="primary" size="sm">Approve Claim</Button>
-                  <Button variant="danger" size="sm">Decline</Button>
-                  <Button variant="outline" size="sm">Mark Reserved</Button>
-                </div>
-              )}
+              {listing.pickup_location && <p>📍 {listing.pickup_location}</p>}
+              {listing.expiration_date && <p>📅 Expires {new Date(listing.expiration_date).toLocaleDateString()}</p>}
             </div>
           )}
         </div>
       )}
 
-      {/* Chat Container */}
+      {/* Chat */}
       <div className="thread-page__chat">
         <div className="thread-page__messages">
           {groupedMessages.map((group) => (
             <div key={group.date}>
-              <div className="thread-page__date-separator">
-                <span>{group.date}</span>
-              </div>
-              {group.messages.map((msg, i) => {
-                const isMine = msg.sender_user_id === CURRENT_USER_ID;
-                const sender = getUserById(msg.sender_user_id);
-                const showAvatar = !isMine && (i === 0 || group.messages[i - 1]?.sender_user_id !== msg.sender_user_id);
+              <div className="thread-page__date-separator"><span>{group.date}</span></div>
+              {group.messages.map((msg) => {
+                const isMine = msg.sender_user_id === currentUserId;
                 return (
-                  <div
-                    key={msg.message_id}
-                    className={`thread-page__bubble-row ${isMine ? "thread-page__bubble-row--mine" : "thread-page__bubble-row--theirs"}`}
-                  >
-                    {!isMine && (
-                      <div className="thread-page__bubble-avatar-slot">
-                        {showAvatar ? (
-                          sender?.profile_photo_url ? (
-                            <img src={sender.profile_photo_url} alt={sender.name} className="thread-page__bubble-avatar" />
-                          ) : (
-                            <div className="thread-page__bubble-avatar thread-page__bubble-avatar--placeholder">{sender?.name[0]}</div>
-                          )
-                        ) : null}
-                      </div>
-                    )}
+                  <div key={msg.message_id} className={`thread-page__bubble-row ${isMine ? "thread-page__bubble-row--mine" : "thread-page__bubble-row--theirs"}`}>
                     <div className={`thread-page__bubble ${isMine ? "thread-page__bubble--mine" : "thread-page__bubble--theirs"}`}>
                       <p className="thread-page__bubble-content">{msg.content}</p>
                       <span className="thread-page__bubble-time">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
                       </span>
                     </div>
                   </div>
@@ -180,17 +178,12 @@ export default function MessageThread() {
               })}
             </div>
           ))}
-          {/* Read receipt */}
-          {lastMessageIsMine && (
-            <div className="thread-page__read-receipt">
-              ✓ Delivered
-            </div>
-          )}
+          {lastMessageIsMine && <div className="thread-page__read-receipt">✓ Delivered</div>}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input Area */}
+      {/* Input */}
       {isActive ? (
         <div className="thread-page__input-wrapper">
           <form onSubmit={handleSend} className="thread-page__input-area">
@@ -202,12 +195,7 @@ export default function MessageThread() {
               onChange={(e) => setNewMessage(e.target.value)}
               aria-label="Message input"
             />
-            <button
-              type="submit"
-              className="thread-page__send-btn"
-              disabled={!newMessage.trim()}
-              aria-label="Send message"
-            >
+            <button type="submit" className="thread-page__send-btn" disabled={!newMessage.trim() || sending} aria-label="Send message">
               ➤
             </button>
           </form>

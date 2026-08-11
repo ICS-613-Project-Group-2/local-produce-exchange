@@ -1,18 +1,20 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card, { CardImage, CardBody, CardFooter } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
+import { useAuth } from "../context/AuthContext";
 import {
-  mockListings,
-  mockCommunities,
-  mockMemberships,
-  mockNotifications,
-  getCommunityById,
-  getUserById,
-} from "../data/mockData";
+  browseListings,
+  listCommunities,
+  getMyNotifications,
+  getMyListings,
+  type ListingResponse,
+  type CommunityResponse,
+  type NotificationResponse,
+} from "../lib/api";
+import type { BadgeStatus } from "../components/ui/StatusBadge";
 import "./Landing.css";
-
-const CURRENT_USER_ID = 1;
 
 interface LandingProps {
   isLoggedIn?: boolean;
@@ -26,10 +28,22 @@ export default function Landing({ isLoggedIn = false }: LandingProps) {
 }
 
 function LoggedOutLanding() {
-  const featuredListings = mockListings
-    .filter((l) => l.status === "available" || l.status === "expiring-soon")
-    .slice(0, 3);
-  const featuredCommunities = mockCommunities.filter((c) => !c.is_private).slice(0, 2);
+  const [featuredListings, setFeaturedListings] = useState<ListingResponse[]>([]);
+  const [featuredCommunities, setFeaturedCommunities] = useState<CommunityResponse[]>([]);
+
+  useEffect(() => {
+    browseListings()
+      .then((data) =>
+        setFeaturedListings(
+          data.filter((l) => l.status === "available" || l.status === "expiring-soon").slice(0, 3)
+        )
+      )
+      .catch(() => setFeaturedListings([]));
+
+    listCommunities()
+      .then((data) => setFeaturedCommunities(data.public_communities.slice(0, 2)))
+      .catch(() => setFeaturedCommunities([]));
+  }, []);
 
   return (
     <div className="landing">
@@ -106,56 +120,59 @@ function LoggedOutLanding() {
         <blockquote className="landing__quote">
           "My garden produces way more than I can eat. Last month I shared 20 lbs of tomatoes and herbs with my neighbors through Green Beans. It feels good knowing nothing went to waste."
         </blockquote>
-        <p className="landing__quote-author">— Lily, Home Gardener in Mānoa Valley</p>
+        <p className="landing__quote-author">— Lily, Home Gardener in Manoa Valley</p>
       </section>
 
       {/* Featured Listings */}
-      <section className="landing__section">
-        <h2 className="landing__section-title">Featured Listings</h2>
-        <div className="landing__grid">
-          {featuredListings.map((listing) => {
-            const community = getCommunityById(listing.community_id);
-            return (
+      {featuredListings.length > 0 && (
+        <section className="landing__section">
+          <h2 className="landing__section-title">Featured Listings</h2>
+          <div className="landing__grid">
+            {featuredListings.map((listing) => (
               <Card key={listing.listing_id}>
-                <CardImage src={listing.photo_url} alt={listing.name} />
+                {listing.photo_url && <CardImage src={listing.photo_url} alt={listing.name} />}
                 <CardBody>
                   <div className="landing__card-header">
                     <h3>{listing.name}</h3>
-                    <StatusBadge status={listing.status} />
+                    {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
                   </div>
                   <p className="landing__card-meta">
-                    {listing.quantity} {listing.unit} · Expires {new Date(listing.expiration_date).toLocaleDateString()}
+                    {listing.quantity} {listing.unit}
+                    {listing.expiration_date && ` · Expires ${new Date(listing.expiration_date).toLocaleDateString()}`}
                   </p>
-                  <p className="landing__card-location">📍 {listing.pickup_location}</p>
-                  {community && <p className="landing__card-community">🏘️ {community.name}</p>}
+                  {listing.pickup_location && <p className="landing__card-location">📍 {listing.pickup_location}</p>}
                 </CardBody>
               </Card>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Communities Preview */}
-      <section className="landing__section landing__section--warm">
-        <h2 className="landing__section-title">Join a Community</h2>
-        <div className="landing__grid landing__grid--2col">
-          {featuredCommunities.map((community) => (
-            <Card key={community.community_id} variant="warm">
-              <CardBody>
-                <div className="landing__card-header">
-                  <h3>{community.name}</h3>
-                  <StatusBadge status={community.is_private ? "private" : "public"} />
-                </div>
-                <p className="landing__card-meta">{community.description}</p>
-                <p className="landing__card-community">👥 {community.member_count} members</p>
-              </CardBody>
-              <CardFooter>
-                <Button variant="primary" size="sm">Join Community</Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </section>
+      {featuredCommunities.length > 0 && (
+        <section className="landing__section landing__section--warm">
+          <h2 className="landing__section-title">Join a Community</h2>
+          <div className="landing__grid landing__grid--2col">
+            {featuredCommunities.map((community) => (
+              <Card key={community.community_id} variant="warm">
+                <CardBody>
+                  <div className="landing__card-header">
+                    <h3>{community.name}</h3>
+                    <StatusBadge status={community.is_private ? "private" : "public"} />
+                  </div>
+                  <p className="landing__card-meta">{community.description}</p>
+                  <p className="landing__card-community">👥 {community.member_count} members</p>
+                </CardBody>
+                <CardFooter>
+                  <Link to={`/communities/${community.community_id}`}>
+                    <Button variant="primary" size="sm">View Community</Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Trust Section */}
       <section className="landing__section">
@@ -182,45 +199,59 @@ function LoggedOutLanding() {
 }
 
 function LoggedInLanding() {
-  const currentUser = getUserById(CURRENT_USER_ID)!;
+  const { user } = useAuth();
+  const [myListings, setMyListings] = useState<ListingResponse[]>([]);
+  const [recentListings, setRecentListings] = useState<ListingResponse[]>([]);
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
+  // Date.now() can't be called directly during render (impure). A lazy
+  // useState initializer evaluates it once on mount instead of every
+  // render, satisfying react-hooks/purity.
+  const [now] = useState(() => Date.now());
 
-  // Listings
-  const myListings = mockListings.filter((l) => l.user_id === CURRENT_USER_ID);
+  useEffect(() => {
+    getMyListings()
+      .then(setMyListings)
+      .catch(() => setMyListings([]));
+
+    browseListings()
+      .then((data) =>
+        setRecentListings(
+          data.filter((l) => l.status === "available" || l.status === "expiring-soon").slice(0, 4)
+        )
+      )
+      .catch(() => setRecentListings([]));
+
+    listCommunities()
+      .then((data) => setMyCommunities(data.my_communities))
+      .catch(() => setMyCommunities([]));
+
+    getMyNotifications()
+      .then((data) => setNotifications(data.filter((n) => !n.is_read).slice(0, 3)))
+      .catch(() => setNotifications([]));
+  }, []);
+
   const expiringSoon = myListings.filter((l) => {
     if (l.status !== "available" && l.status !== "expiring-soon") return false;
-    const daysLeft = Math.ceil((new Date(l.expiration_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (!l.expiration_date) return false;
+    const daysLeft = Math.ceil((new Date(l.expiration_date).getTime() - now) / (1000 * 60 * 60 * 24));
     return daysLeft <= 2 && daysLeft >= 0;
   });
-
-  const recentListings = mockListings
-    .filter((l) => l.status === "available" || l.status === "expiring-soon")
-    .slice(0, 4);
-
-  // Communities
-  const userCommunityIds = mockMemberships
-    .filter((m) => m.user_id === CURRENT_USER_ID)
-    .map((m) => m.community_id);
-  const userCommunities = mockCommunities.filter((c) => userCommunityIds.includes(c.community_id));
-
-  // Recent notifications
-  const recentNotifications = mockNotifications
-    .filter((n) => n.user_id === CURRENT_USER_ID && !n.is_read)
-    .slice(0, 3);
 
   return (
     <div className="landing">
       {/* Personalized Greeting */}
       <section className="landing__greeting">
         <div className="landing__greeting-inner">
-          {currentUser.profile_photo_url ? (
-            <img src={currentUser.profile_photo_url} alt={currentUser.name} className="landing__greeting-avatar" />
+          {user?.profile_photo_url ? (
+            <img src={user.profile_photo_url} alt={user.name} className="landing__greeting-avatar" />
           ) : (
             <div className="landing__greeting-avatar landing__greeting-avatar--placeholder">
-              {currentUser.name[0]}
+              {user?.name?.[0] || "?"}
             </div>
           )}
           <div>
-            <h1>Welcome back, {currentUser.name.split(" ")[0]}! 🌱</h1>
+            <h1>Welcome back, {user?.name?.split(" ")[0] || "there"}! 🌱</h1>
             <p className="landing__greeting-subtitle">Here's what's fresh in your communities.</p>
           </div>
         </div>
@@ -254,14 +285,14 @@ function LoggedInLanding() {
       )}
 
       {/* Recent Notifications */}
-      {recentNotifications.length > 0 && (
+      {notifications.length > 0 && (
         <section className="landing__section">
           <div className="landing__section-header">
             <h2 className="landing__section-title">What's New</h2>
             <Link to="/notifications"><Button variant="outline" size="sm">View All</Button></Link>
           </div>
           <div className="landing__notifications">
-            {recentNotifications.map((n) => (
+            {notifications.map((n) => (
               <div key={n.notification_id} className="landing__notification-item">
                 <span className="landing__notification-dot" />
                 <p>{n.content}</p>
@@ -272,43 +303,44 @@ function LoggedInLanding() {
       )}
 
       {/* My Communities */}
-      <section className="landing__section">
-        <div className="landing__section-header">
-          <h2 className="landing__section-title">My Communities</h2>
-          <Link to="/communities"><Button variant="outline" size="sm">Browse All</Button></Link>
-        </div>
-        <div className="landing__communities">
-          {userCommunities.map((community) => (
-            <Link key={community.community_id} to={`/communities/${community.community_id}`} className="landing__community-chip">
-              <StatusBadge status={community.is_private ? "private" : "public"} />
-              <span>{community.name}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {myCommunities.length > 0 && (
+        <section className="landing__section">
+          <div className="landing__section-header">
+            <h2 className="landing__section-title">My Communities</h2>
+            <Link to="/communities"><Button variant="outline" size="sm">Browse All</Button></Link>
+          </div>
+          <div className="landing__communities">
+            {myCommunities.map((community) => (
+              <Link key={community.community_id} to={`/communities/${community.community_id}`} className="landing__community-chip">
+                <StatusBadge status={community.is_private ? "private" : "public"} />
+                <span>{community.name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Recent Listings */}
-      <section className="landing__section">
-        <div className="landing__section-header">
-          <h2 className="landing__section-title">Fresh & Available</h2>
-          <Link to="/browse"><Button variant="outline" size="sm">Browse All</Button></Link>
-        </div>
-        <div className="landing__grid">
-          {recentListings.map((listing) => {
-            const community = getCommunityById(listing.community_id);
-            return (
+      {recentListings.length > 0 && (
+        <section className="landing__section">
+          <div className="landing__section-header">
+            <h2 className="landing__section-title">Fresh & Available</h2>
+            <Link to="/browse"><Button variant="outline" size="sm">Browse All</Button></Link>
+          </div>
+          <div className="landing__grid">
+            {recentListings.map((listing) => (
               <Card key={listing.listing_id}>
-                <CardImage src={listing.photo_url} alt={listing.name} />
+                {listing.photo_url && <CardImage src={listing.photo_url} alt={listing.name} />}
                 <CardBody>
                   <div className="landing__card-header">
                     <h3>{listing.name}</h3>
-                    <StatusBadge status={listing.status} />
+                    {listing.status && <StatusBadge status={listing.status as BadgeStatus} />}
                   </div>
                   <p className="landing__card-meta">
-                    {listing.quantity} {listing.unit} · Expires {new Date(listing.expiration_date).toLocaleDateString()}
+                    {listing.quantity} {listing.unit}
+                    {listing.expiration_date && ` · Expires ${new Date(listing.expiration_date).toLocaleDateString()}`}
                   </p>
-                  <p className="landing__card-location">📍 {listing.pickup_location}</p>
-                  {community && <p className="landing__card-community">🏘️ {community.name}</p>}
+                  {listing.pickup_location && <p className="landing__card-location">📍 {listing.pickup_location}</p>}
                 </CardBody>
                 <CardFooter>
                   <Link to={`/listings/${listing.listing_id}`}>
@@ -316,10 +348,10 @@ function LoggedInLanding() {
                   </Link>
                 </CardFooter>
               </Card>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
