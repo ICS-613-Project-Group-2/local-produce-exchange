@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Card, { CardBody } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
-import { mockCommunities } from "../data/mockData";
+import {
+  listCommunities,
+  createListing,
+  uploadPhoto,
+  type CommunityResponse,
+} from "../lib/api";
 import "./CreateListing.css";
 
 interface FormData {
@@ -37,6 +42,7 @@ const CATEGORIES = [
 const STEPS = ["Details", "Freshness & Pickup", "Photo", "Community"];
 
 export default function CreateListing() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     category: "",
@@ -51,10 +57,18 @@ export default function CreateListing() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [userCommunities, setUserCommunities] = useState<CommunityResponse[]>([]);
 
-  const userCommunities = mockCommunities.filter((c) => !c.is_private || c.community_id <= 3);
+  useEffect(() => {
+    listCommunities()
+      .then((data) => setUserCommunities(data.my_communities))
+      .catch(() => setUserCommunities([]));
+  }, []);
+
   const descCharCount = formData.description.length;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
@@ -86,23 +100,49 @@ export default function CreateListing() {
     if (!formData.expiration_date) newErrors.expiration_date = "Expiration date is required.";
     if (!formData.pickup_location.trim()) newErrors.pickup_location = "Pickup location is required.";
     if (!formData.community_id) newErrors.community_id = "Please select a community.";
-    if (!formData.photo) newErrors.photo = "Please upload a photo.";
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Jump to first step with error
       if (newErrors.name || newErrors.category || newErrors.quantity || newErrors.unit || newErrors.description) setCurrentStep(0);
       else if (newErrors.expiration_date || newErrors.pickup_location) setCurrentStep(1);
       else if (newErrors.photo) setCurrentStep(2);
       else setCurrentStep(3);
       return;
     }
-    setSubmitted(true);
+
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // Upload photo first if provided
+      let photoId: number | undefined;
+      if (formData.photo) {
+        const photoResponse = await uploadPhoto(formData.photo);
+        photoId = photoResponse.photo_id;
+      }
+
+      const created = await createListing({
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        quantity: Number(formData.quantity),
+        unit: formData.unit.trim(),
+        expiration_date: formData.expiration_date,
+        pickup_location: formData.pickup_location.trim(),
+        category: formData.category,
+        community_id: Number(formData.community_id),
+        photo_id: photoId,
+      });
+      setSubmitted(true);
+      setTimeout(() => navigate(`/listings/${created.listing_id}`), 2000);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to create listing");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -151,8 +191,11 @@ export default function CreateListing() {
         </Card>
         <div className="create-listing__preview-actions">
           <Button variant="outline" onClick={() => setShowPreview(false)}>Back to Edit</Button>
-          <Button variant="primary" onClick={handleSubmit as any}>Publish Listing</Button>
+          <Button variant="primary" onClick={handleSubmit as any} disabled={submitting}>
+            {submitting ? "Publishing..." : "Publish Listing"}
+          </Button>
         </div>
+        {submitError && <p className="create-listing__error">{submitError}</p>}
       </div>
     );
   }
@@ -178,6 +221,8 @@ export default function CreateListing() {
         ))}
       </div>
 
+      {submitError && <p className="create-listing__error">{submitError}</p>}
+
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit} className="create-listing__form">
@@ -186,14 +231,7 @@ export default function CreateListing() {
               <section className="create-listing__section">
                 <h2>Item Details</h2>
                 <FormField label="Produce Name" htmlFor="name" required error={errors.name}>
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="e.g., Fresh Tomatoes"
-                    value={formData.name}
-                    onChange={handleChange}
-                    hasError={!!errors.name}
-                  />
+                  <Input id="name" name="name" placeholder="e.g., Fresh Tomatoes" value={formData.name} onChange={handleChange} hasError={!!errors.name} />
                 </FormField>
 
                 <FormField label="Category" htmlFor="category" required error={errors.category}>
@@ -214,39 +252,15 @@ export default function CreateListing() {
 
                 <div className="create-listing__row">
                   <FormField label="Quantity" htmlFor="quantity" required error={errors.quantity}>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="0"
-                      value={formData.quantity}
-                      onChange={handleChange}
-                      hasError={!!errors.quantity}
-                    />
+                    <Input id="quantity" name="quantity" type="number" min="1" step="1" placeholder="0" value={formData.quantity} onChange={handleChange} hasError={!!errors.quantity} />
                   </FormField>
                   <FormField label="Unit" htmlFor="unit" required error={errors.unit}>
-                    <Input
-                      id="unit"
-                      name="unit"
-                      placeholder="e.g., lbs, pieces, bunches"
-                      value={formData.unit}
-                      onChange={handleChange}
-                      hasError={!!errors.unit}
-                    />
+                    <Input id="unit" name="unit" placeholder="e.g., lbs, pieces, bunches" value={formData.unit} onChange={handleChange} hasError={!!errors.unit} />
                   </FormField>
                 </div>
 
                 <FormField label="Description" htmlFor="description" required error={errors.description}>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Describe the item, freshness, size, and any relevant details..."
-                    value={formData.description}
-                    onChange={handleChange}
-                    hasError={!!errors.description}
-                  />
+                  <Textarea id="description" name="description" placeholder="Describe the item, freshness, size, and any relevant details..." value={formData.description} onChange={handleChange} hasError={!!errors.description} />
                   <span className="create-listing__char-count">{descCharCount} characters</span>
                 </FormField>
               </section>
@@ -257,25 +271,11 @@ export default function CreateListing() {
               <section className="create-listing__section">
                 <h2>Freshness & Pickup</h2>
                 <FormField label="Expiration Date" htmlFor="expiration_date" required error={errors.expiration_date}>
-                  <Input
-                    id="expiration_date"
-                    name="expiration_date"
-                    type="date"
-                    value={formData.expiration_date}
-                    onChange={handleChange}
-                    hasError={!!errors.expiration_date}
-                  />
+                  <Input id="expiration_date" name="expiration_date" type="date" value={formData.expiration_date} onChange={handleChange} hasError={!!errors.expiration_date} />
                 </FormField>
 
                 <FormField label="Pickup Location" htmlFor="pickup_location" required error={errors.pickup_location} helperText="Be specific — address, landmark, or instructions.">
-                  <Input
-                    id="pickup_location"
-                    name="pickup_location"
-                    placeholder="e.g., 2845 Oahu Ave, front porch"
-                    value={formData.pickup_location}
-                    onChange={handleChange}
-                    hasError={!!errors.pickup_location}
-                  />
+                  <Input id="pickup_location" name="pickup_location" placeholder="e.g., 2845 Oahu Ave, front porch" value={formData.pickup_location} onChange={handleChange} hasError={!!errors.pickup_location} />
                 </FormField>
               </section>
             )}
@@ -294,17 +294,10 @@ export default function CreateListing() {
                     <label className="create-listing__upload-label" htmlFor="photo">
                       <span className="create-listing__upload-icon">📷</span>
                       <span className="create-listing__upload-text">Click or drag to upload a photo</span>
-                      <span className="create-listing__upload-hint">JPG, PNG, or WebP</span>
+                      <span className="create-listing__upload-hint">JPG, PNG, or WebP (optional)</span>
                     </label>
                   )}
-                  <input
-                    id="photo"
-                    name="photo"
-                    type="file"
-                    accept="image/*"
-                    className="create-listing__file-input"
-                    onChange={handlePhotoChange}
-                  />
+                  <input id="photo" name="photo" type="file" accept="image/*" className="create-listing__file-input" onChange={handlePhotoChange} />
                 </div>
                 {errors.photo && <p className="create-listing__upload-error">{errors.photo}</p>}
               </section>
@@ -336,22 +329,16 @@ export default function CreateListing() {
             {/* Navigation */}
             <div className="create-listing__nav">
               {currentStep > 0 && (
-                <Button variant="outline" type="button" onClick={() => setCurrentStep(currentStep - 1)}>
-                  Back
-                </Button>
+                <Button variant="outline" type="button" onClick={() => setCurrentStep(currentStep - 1)}>Back</Button>
               )}
               <div className="create-listing__nav-right">
                 {currentStep < STEPS.length - 1 ? (
-                  <Button variant="primary" type="button" onClick={() => setCurrentStep(currentStep + 1)}>
-                    Next
-                  </Button>
+                  <Button variant="primary" type="button" onClick={() => setCurrentStep(currentStep + 1)}>Next</Button>
                 ) : (
                   <>
-                    <Button variant="outline" type="button" onClick={() => setShowPreview(true)}>
-                      Preview
-                    </Button>
-                    <Button variant="primary" type="submit" size="lg">
-                      Publish Listing
+                    <Button variant="outline" type="button" onClick={() => setShowPreview(true)}>Preview</Button>
+                    <Button variant="primary" type="submit" size="lg" disabled={submitting}>
+                      {submitting ? "Publishing..." : "Publish Listing"}
                     </Button>
                   </>
                 )}
@@ -360,9 +347,6 @@ export default function CreateListing() {
           </form>
         </CardBody>
       </Card>
-
-      {/* Draft indicator */}
-      <p className="create-listing__draft-note">💾 Draft auto-saved locally</p>
     </div>
   );
 }

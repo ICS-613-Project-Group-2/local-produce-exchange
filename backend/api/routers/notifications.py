@@ -74,6 +74,20 @@ def list_notifications(
     return query.order_by(Notification.is_read.asc(), Notification.timestamp.desc()).all()
 
 
+# convenience alias: GET /v1/me/notifications for the current user
+@router.get("/v1/me/notifications", response_model=list[NotificationResponse])
+def list_my_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.user_id)
+        .order_by(Notification.is_read.asc(), Notification.timestamp.desc())
+        .all()
+    )
+
+
 # marks a single notification as read
 # a user can only mark their own notifications as read
 # returns a NotificationResponse object with the updated notification's details
@@ -112,4 +126,17 @@ def mark_all_notifications_read(
         )
 
     db.query(Notification).filter(Notification.user_id == user_id, Notification.is_read.is_(False)).update({"is_read": True})
+    db.commit()
+
+
+# convenience alias: PUT /v1/me/notifications/read-all
+@router.put("/v1/me/notifications/read-all", status_code=status.HTTP_204_NO_CONTENT)
+def mark_all_my_notifications_read(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db.query(Notification).filter(
+        Notification.user_id == current_user.user_id,
+        Notification.is_read.is_(False),
+    ).update({"is_read": True})
     db.commit()

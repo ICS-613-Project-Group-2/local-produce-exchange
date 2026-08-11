@@ -6,7 +6,17 @@ import Card, { CardBody } from "../components/ui/Card";
 import FormField, { Input, Textarea } from "../components/ui/FormField";
 import EmptyState from "../components/feedback/EmptyState";
 import { useAuth } from "../context/AuthContext";
-import { getUserReviews, ApiError, type ReviewResponse } from "../lib/api";
+import {
+  browseListings,
+  listCommunities,
+  updateProfile,
+  uploadPhoto,
+  getUserReviews,
+  ApiError,
+  type ListingResponse,
+  type CommunityResponse,
+  type ReviewResponse,
+} from "../lib/api";
 import "./Profile.css";
 
 export default function Profile() {
@@ -26,21 +36,15 @@ export default function Profile() {
       <PageHeader title="Profile" />
 
       <div className="profile__tabs">
-        <button
-          className={`profile__tab ${activeTab === "profile" ? "profile__tab--active" : ""}`}
-          onClick={() => setActiveTab("profile")}
-        >
+        <button className={`profile__tab ${activeTab === "profile" ? "profile__tab--active" : ""}`} onClick={() => setActiveTab("profile")}>
           Public Profile
         </button>
-        <button
-          className={`profile__tab ${activeTab === "settings" ? "profile__tab--active" : ""}`}
-          onClick={() => setActiveTab("settings")}
-        >
+        <button className={`profile__tab ${activeTab === "settings" ? "profile__tab--active" : ""}`} onClick={() => setActiveTab("settings")}>
           Settings
         </button>
       </div>
 
-      {activeTab === "profile" ? <PublicProfile userId={user.user_id} name={user.name} email={user.email} photoUrl={user.profile_photo_url} /> : <ProfileSettings name={user.name} email={user.email} photoUrl={user.profile_photo_url} />}
+      {activeTab === "profile" ? <PublicProfile userId={user.user_id} name={user.name} email={user.email} photoUrl={user.profile_photo_url} /> : <ProfileSettings />}
     </div>
   );
 }
@@ -53,36 +57,51 @@ interface PublicProfileProps {
 }
 
 function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
+  const [myListings, setMyListings] = useState<ListingResponse[]>([]);
+  const [myCommunities, setMyCommunities] = useState<CommunityResponse[]>([]);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setLoadError(null);
-    getUserReviews(userId)
-      .then((result) => {
-        setReviews(result.reviews);
-        setAverageRating(result.average_rating);
-      })
-      .catch((err) => {
-        setLoadError(err instanceof ApiError ? err.message : "Reviews could not be loaded.");
-      })
-      .finally(() => setLoading(false));
+    loadProfile();
   }, [userId]);
+
+  async function loadProfile() {
+    setLoading(true);
+    try {
+      const [listings, commData, reviewData] = await Promise.all([
+        browseListings().catch(() => []),
+        listCommunities().catch(() => ({ my_communities: [], public_communities: [] })),
+        getUserReviews(userId).catch(() => ({ reviews: [], average_rating: null, review_count: 0 })),
+      ]);
+      setMyListings(listings.filter((l) => l.user_id === userId));
+      setMyCommunities(commData.my_communities);
+      setReviews(reviewData.reviews);
+      setAverageRating(reviewData.average_rating);
+    } catch {
+      // fail gracefully
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <p className="profile__status-message">Loading profile...</p>;
+
+  const completedCount = myListings.filter((l) => l.status === "completed").length;
 
   return (
     <div className="profile__content">
-      {/* Profile Card */}
       <Card variant="warm">
         <CardBody>
           <div className="profile__header">
-            {photoUrl ? (
-              <img src={photoUrl} alt={name} className="profile__avatar" />
-            ) : (
-              <div className="profile__avatar profile__avatar--placeholder">{name[0]}</div>
-            )}
+            <div className="profile__avatar-wrapper">
+              {photoUrl ? (
+                <img src={photoUrl} alt={name} className="profile__avatar" />
+              ) : (
+                <div className="profile__avatar profile__avatar--placeholder">{name[0]}</div>
+              )}
+            </div>
             <div className="profile__info">
               <h2>{name}</h2>
               {averageRating !== null && (
@@ -96,14 +115,38 @@ function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
         </CardBody>
       </Card>
 
+      <div className="profile__stats">
+        <div className="profile__stat">
+          <span className="profile__stat-number">{myListings.length}</span>
+          <span className="profile__stat-label">Listings</span>
+        </div>
+        <div className="profile__stat">
+          <span className="profile__stat-number">{completedCount}</span>
+          <span className="profile__stat-label">Completed</span>
+        </div>
+        <div className="profile__stat">
+          <span className="profile__stat-number">{myCommunities.length}</span>
+          <span className="profile__stat-label">Communities</span>
+        </div>
+      </div>
+
+      {myCommunities.length > 0 && (
+        <section className="profile__section">
+          <h2>Communities</h2>
+          <div className="profile__communities-list">
+            {myCommunities.map((c) => (
+              <Link key={c.community_id} to={`/communities/${c.community_id}`} className="profile__community-chip">
+                {c.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Reviews */}
       <section className="profile__section">
         <h2>Reviews</h2>
-        {loading ? (
-          <p className="profile__status-message">Loading reviews...</p>
-        ) : loadError ? (
-          <p className="profile__status-message">{loadError}</p>
-        ) : reviews.length > 0 ? (
+        {reviews.length > 0 ? (
           <div className="profile__reviews">
             {reviews.map((review) => (
               <Card key={review.review_id}>
@@ -130,7 +173,6 @@ function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
         )}
       </section>
 
-      {/* Quick Links */}
       <section className="profile__section">
         <h2>Activity</h2>
         <div className="profile__links">
@@ -146,27 +188,25 @@ function PublicProfile({ userId, name, email, photoUrl }: PublicProfileProps) {
   );
 }
 
-interface ProfileSettingsProps {
-  name: string;
-  email: string;
-  photoUrl: string | null;
-}
-
-function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
+function ProfileSettings() {
+  const { user, refreshUser } = useAuth();
   const [formData, setFormData] = useState({
-    name,
-    email,
+    name: user?.name || "",
+    email: user?.email || "",
     location: "",
     bio: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
     setSaved(false);
+    setSaveError(null);
   }
 
   function validate(): Record<string, string> {
@@ -180,7 +220,7 @@ function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
     return newErrors;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -188,16 +228,41 @@ function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
       return;
     }
     setErrors({});
-    setSaved(true);
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      await updateProfile({
+        name: formData.name,
+        location: formData.location || undefined,
+      });
+      await refreshUser();
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const photo = await uploadPhoto(file);
+      await updateProfile({ profile_photo_id: photo.photo_id });
+      await refreshUser();
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to upload photo");
+    }
   }
 
   return (
     <div className="profile__content">
-      {saved && (
-        <div className="profile__save-success">
-          ✅ Profile updated successfully.
-        </div>
-      )}
+      {saved && <div className="profile__save-success">✅ Profile updated successfully.</div>}
+      {saveError && <div className="profile__save-error">❌ {saveError}</div>}
 
       <Card>
         <CardBody>
@@ -206,12 +271,24 @@ function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
             <section className="profile__form-section">
               <h2>Profile Photo</h2>
               <div className="profile__photo-upload">
-                {photoUrl ? (
-                  <img src={photoUrl} alt={name} className="profile__avatar" />
+                {user?.profile_photo_url ? (
+                  <img src={user.profile_photo_url} alt={user.name} className="profile__avatar" />
                 ) : (
-                  <div className="profile__avatar profile__avatar--placeholder">{name[0]}</div>
+                  <div className="profile__avatar profile__avatar--placeholder">{user?.name?.[0] || "?"}</div>
                 )}
-                <input type="file" accept="image/*" className="profile__file-input" />
+                <div className="profile__photo-actions">
+                  <label htmlFor="photo-upload" className="btn btn--outline btn--sm" style={{ cursor: "pointer" }}>
+                    Upload New Photo
+                  </label>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoUpload}
+                    style={{ display: "none" }}
+                  />
+                  <p className="profile__photo-hint">JPG, PNG, or WebP. Max 5MB.</p>
+                </div>
               </div>
             </section>
 
@@ -229,14 +306,7 @@ function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
               </FormField>
 
               <FormField label="Email" htmlFor="email" required error={errors.email}>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  hasError={!!errors.email}
-                />
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} hasError={!!errors.email} disabled />
               </FormField>
 
               <FormField label="Location" htmlFor="location" helperText="General area shown to other users.">
@@ -261,8 +331,8 @@ function ProfileSettings({ name, email, photoUrl }: ProfileSettingsProps) {
             </section>
 
             <div className="profile__form-actions">
-              <Button variant="primary" type="submit" size="lg">
-                Save Changes
+              <Button variant="primary" type="submit" size="lg" disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
