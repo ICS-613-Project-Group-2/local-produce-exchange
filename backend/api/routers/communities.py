@@ -17,6 +17,7 @@ from schemas import (
     CommunitiesListResponse,
     InviteUser,
     InvitationResponse,
+    InvitationPreview,
     JoinRequestResponse,
     MembershipResponse,
 )
@@ -261,110 +262,6 @@ def get_community(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This community is private")
 
     return _community_to_community_response(db, community, current_user.user_id)
-
-
-# turns a (Membership, User) pair into a CommunityMemberResponse, resolving the user's profile photo
-def _member_to_response(db: Session, membership: Membership, user: User) -> CommunityMemberResponse:
-    photo_url = None
-    if user.profile_photo_id is not None:
-        photo = db.query(Photo).filter(Photo.photo_id == user.profile_photo_id).first()
-        photo_url = photo.image_link if photo is not None else None
-
-    return CommunityMemberResponse(
-        user_id = user.user_id,
-        name = user.name,
-        profile_photo_url = photo_url,
-        role = membership.role,
-        date_joined = membership.date_joined,
-    )
-
-
-# lists the members of a community, including each member's profile photo and role
-# returns a list of CommunityMemberResponse objects, ordered by role (owner/moderator first) then name
-@router.get("/v1/communities/{community_id}/members", response_model=list[CommunityMemberResponse])
-def list_community_members(
-    community_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    community = _get_community(db, community_id)
-
-    # checks if the community is private and if the current user is a member; raises a 403 error if not
-    if community.is_private and _get_membership(db, community_id, current_user.user_id) is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This community is private")
-
-    role_rank = {"owner": 0, "moderator": 1, "admin": 1}
-
-    rows = (
-        db.query(Membership, User)
-        .join(User, User.user_id == Membership.user_id)
-        .filter(Membership.community_id == community_id)
-        .order_by(User.name)
-        .all()
-    )
-    rows.sort(key=lambda row: role_rank.get(row[0].role, 2))
-
-    return [_member_to_response(db, membership, user) for membership, user in rows]
-
-
-# promotes or demotes a member between "member" and "moderator"; only owners/moderators can do this,
-# and the community's owner cannot be changed here (ownership transfer isn't supported yet)
-# returns a CommunityMemberResponse object with the member's updated role
-@router.patch("/v1/communities/{community_id}/members/{user_id}", response_model=CommunityMemberResponse)
-def update_member_role(
-    community_id: int,
-    user_id: int,
-    role_update: UpdateMemberRole,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    _check_moderation_perms(db, community_id, current_user.user_id)
-
-    if user_id == current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot change your own role")
-
-    membership = _get_membership(db, community_id, user_id)
-    if membership is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This user is not a member of this community")
-
-    if membership.role == "owner":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The community owner's role cannot be changed")
-
-    membership.role = role_update.role
-    db.commit()
-    db.refresh(membership)
-
-    user = db.query(User).filter(User.user_id == user_id).first()
-    return _member_to_response(db, membership, user)
-
-
-# removes a member from a community; only owners/moderators can do this, and the owner cannot be removed
-# returns a 204 No Content response if successful
-@router.delete("/v1/communities/{community_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_member(
-    community_id: int,
-    user_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    _check_moderation_perms(db, community_id, current_user.user_id)
-
-    if user_id == current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot remove yourself; use the leave endpoint instead",
-        )
-
-    membership = _get_membership(db, community_id, user_id)
-    if membership is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This user is not a member of this community")
-
-    if membership.role == "owner":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The community owner cannot be removed")
-
-    db.delete(membership)
-    db.commit()
-    return None
 
 
 # updates a community's details if the current user is a moderator or higher
@@ -631,7 +528,7 @@ def leave_community(
 # ---------------------------------------------------------------------------
 
 # lists all members of a community
-# the user must be a member themselves to see the list
+# private communities require the viewer to already be a member; public communities are open to any logged-in user
 # returns a list of MembershipResponse objects
 @router.get("/v1/communities/{community_id}/members", response_model=list[MembershipResponse])
 def list_community_members(
@@ -639,11 +536,10 @@ def list_community_members(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_community(db, community_id)
+    community = _get_community(db, community_id)
 
-    # the user must be a member of the community to see the member list
-    if _get_membership(db, community_id, current_user.user_id) is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member to view this community's members")
+    if community.is_private and _get_membership(db, community_id, current_user.user_id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This community is private")
 
     members = (
         db.query(Membership)

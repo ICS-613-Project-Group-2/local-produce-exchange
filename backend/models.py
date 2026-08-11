@@ -193,6 +193,7 @@ class Invitation(Base):
     sender_user_id = Column(Integer, ForeignKey("users.user_id"))
 
     email = Column(String(255), nullable=False)
+    token = Column(String(64), unique=True, nullable=False)
     status = Column(String(50), server_default=text("'pending'"))
     sent_date = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
     expiration_date = Column(DateTime, nullable=True)

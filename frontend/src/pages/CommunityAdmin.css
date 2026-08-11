@@ -42,6 +42,20 @@
   font-size: var(--font-size-label);
 }
 
+.admin__invite-link-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-weight: var(--font-weight-regular);
+}
+
+.admin__invite-link-row .form-field__input {
+  flex: 1;
+  font-size: var(--font-size-label);
+  background-color: var(--color-surface);
+}
+
 /* Members list */
 .admin__members-list,
 .admin__requests-list {

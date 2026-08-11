@@ -135,9 +135,10 @@ export interface CommunityResponse {
   description: string;
   location: string;
   guidelines: string;
-  is_private: boolean;
+  is_private: boolean | null;
   member_count: number;
   banner_url: string | null;
+  my_role: string | null;
 }
 
 export interface CommunitiesListResponse {
@@ -160,6 +161,18 @@ export interface InvitationResponse {
   status: string | null;
   sent_date: string | null;
   expiration_date: string | null;
+  invite_link: string;
+}
+
+export interface InvitationPreview {
+  community_id: number;
+  community_name: string;
+  community_description: string;
+  inviter_name: string | null;
+  email: string;
+  status: string | null;
+  expiration_date: string | null;
+  is_expired: boolean;
 }
 
 export interface MessageResponse {
@@ -206,7 +219,7 @@ export interface UserReviewsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// -------------------------------- COMMUNITIES -------------------------------
+// Communities
 // ---------------------------------------------------------------------------
 
 export interface CreateCommunityPayload {
@@ -217,75 +230,15 @@ export interface CreateCommunityPayload {
   is_private: boolean;
 }
 
-export interface CommunityResponse {
-  community_id: number;
-  name: string;
-  description: string;
-  location: string;
-  guidelines: string;
-  is_private: boolean | null;
-  member_count: number;
-  banner_url: string | null;
-  my_role: string | null;
-}
-
-export interface CommunitiesListResponse {
-  my_communities: CommunityResponse[];
-  public_communities: CommunityResponse[];
-}
-
-export interface InvitationResponse {
-  invitation_id: number;
-  community_id: number | null;
-  sender_user_id: number | null;
-  email: string;
-  status: string | null;
-  sent_date: string | null;
-  expiration_date: string | null;
-  invite_link: string;
-}
-
-export interface InvitationPreview {
-  community_id: number;
-  community_name: string;
-  community_description: string;
-  inviter_name: string | null;
-  email: string;
-  status: string | null;
-  expiration_date: string | null;
-  is_expired: boolean;
-}
-
-export interface MembershipResponse {
-  user_id: number;
-  community_id: number;
-  role: string | null;
-  date_joined: string | null;
-}
-
-export interface CommunityMemberResponse {
-  user_id: number;
-  name: string;
-  profile_photo_url: string | null;
-  role: string | null;
-  date_joined: string | null;
-}
-
-// lists communities the current user is a member of, plus public communities they are not in
-// returns a CommunitiesListResponse split into my_communities and public_communities
 export function listCommunities(search?: string): Promise<CommunitiesListResponse> {
-  const query = search ? `?search=${encodeURIComponent(search)}` : "";
-  return apiFetch<CommunitiesListResponse>(`/v1/communities${query}`);
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  return apiFetch<CommunitiesListResponse>(`/v1/communities${params}`);
 }
 
-// retrieves a single community by ID
-// returns a CommunityResponse with the community's details
 export function getCommunity(communityId: number): Promise<CommunityResponse> {
   return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`);
 }
 
-// creates a new community with the current user as its owner
-// returns a CommunityResponse with the new community's details
 export function createCommunity(payload: CreateCommunityPayload): Promise<CommunityResponse> {
   return apiFetch<CommunityResponse>("/v1/communities", {
     method: "POST",
@@ -293,8 +246,30 @@ export function createCommunity(payload: CreateCommunityPayload): Promise<Commun
   });
 }
 
+export function updateCommunity(
+  communityId: number,
+  payload: CreateCommunityPayload
+): Promise<CommunityResponse> {
+  return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function joinCommunity(communityId: number): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/join`, {
+    method: "POST",
+  });
+}
+
+export function leaveCommunity(communityId: number): Promise<void> {
+  return apiFetch<void>(`/v1/communities/${communityId}/leave`, {
+    method: "POST",
+  });
+}
+
 // invites a user by email to a community
-// returns an InvitationResponse with the details of the invitation
+// returns an InvitationResponse whose invite_link is the shareable URL to send/copy to the invitee
 export function inviteToCommunity(
   communityId: number,
   email: string
@@ -305,49 +280,7 @@ export function inviteToCommunity(
   });
 }
 
-// joins a public community, or requests to join a private one, as the current user
-// returns a MembershipResponse with the new membership's details
-export function joinCommunity(communityId: number): Promise<MembershipResponse> {
-  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/join`, {
-    method: "POST",
-  });
-}
-
-// leaves a community the current user is a member of
-export function leaveCommunity(communityId: number): Promise<void> {
-  return apiFetch<void>(`/v1/communities/${communityId}/leave`, {
-    method: "POST",
-  });
-}
-
-// lists the members of a community, including each member's profile photo and role
-// returns a list of CommunityMemberResponse objects, ordered by role (owner/moderator first) then name
-export function listCommunityMembers(communityId: number): Promise<CommunityMemberResponse[]> {
-  return apiFetch<CommunityMemberResponse[]>(`/v1/communities/${communityId}/members`);
-}
-
-// promotes or demotes a member between "member" and "moderator"; the community owner's role can't be changed
-// returns a CommunityMemberResponse with the member's updated role
-export function updateMemberRole(
-  communityId: number,
-  userId: number,
-  role: "member" | "moderator"
-): Promise<CommunityMemberResponse> {
-  return apiFetch<CommunityMemberResponse>(`/v1/communities/${communityId}/members/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ role }),
-  });
-}
-
-// removes a member from a community; the community owner cannot be removed
-export function removeMember(communityId: number, userId: number): Promise<void> {
-  return apiFetch<void>(`/v1/communities/${communityId}/members/${userId}`, {
-    method: "DELETE",
-  });
-}
-
 // looks up an invitation by its token, for the invite landing page
-// does not require the viewer to be logged in
 // returns an InvitationPreview with the community and inviter details
 export function getInvitationPreview(token: string): Promise<InvitationPreview> {
   return apiFetch<InvitationPreview>(`/v1/invitations/${token}`);
@@ -369,7 +302,7 @@ export function declineInvitation(token: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// ------------------------------------ AUTH ----------------------------------
+// Auth
 // ---------------------------------------------------------------------------
 
 export interface RegisterPayload {
@@ -503,66 +436,6 @@ export async function uploadPhoto(file: File): Promise<PhotoResponse> {
   }
 
   return data as PhotoResponse;
-}
-
-// ---------------------------------------------------------------------------
-// Communities
-// ---------------------------------------------------------------------------
-
-export interface CreateCommunityPayload {
-  name: string;
-  description: string;
-  location: string;
-  guidelines: string;
-  is_private: boolean;
-}
-
-export function listCommunities(search?: string): Promise<CommunitiesListResponse> {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
-  return apiFetch<CommunitiesListResponse>(`/v1/communities${params}`);
-}
-
-export function getCommunity(communityId: number): Promise<CommunityResponse> {
-  return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`);
-}
-
-export function createCommunity(payload: CreateCommunityPayload): Promise<CommunityResponse> {
-  return apiFetch<CommunityResponse>("/v1/communities", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export function updateCommunity(
-  communityId: number,
-  payload: CreateCommunityPayload
-): Promise<CommunityResponse> {
-  return apiFetch<CommunityResponse>(`/v1/communities/${communityId}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
-}
-
-export function joinCommunity(communityId: number): Promise<MembershipResponse> {
-  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/join`, {
-    method: "POST",
-  });
-}
-
-export function leaveCommunity(communityId: number): Promise<void> {
-  return apiFetch<void>(`/v1/communities/${communityId}/leave`, {
-    method: "POST",
-  });
-}
-
-export function inviteToCommunity(
-  communityId: number,
-  email: string
-): Promise<InvitationResponse> {
-  return apiFetch<InvitationResponse>(`/v1/communities/${communityId}/invite`, {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -704,21 +577,26 @@ export function getCommunityMembers(communityId: number): Promise<MembershipResp
   return apiFetch<MembershipResponse[]>(`/v1/communities/${communityId}/members`);
 }
 
+// promotes a regular member to moderator; only the community owner can do this
+export function promoteMember(communityId: number, userId: number): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/members/${userId}/promote`, {
+    method: "PUT",
+  });
+}
+
+// demotes a moderator back to a regular member; only the community owner can do this
+export function demoteMember(communityId: number, userId: number): Promise<MembershipResponse> {
+  return apiFetch<MembershipResponse>(`/v1/communities/${communityId}/members/${userId}/demote`, {
+    method: "PUT",
+  });
+}
+
+// removes a member from the community; owners can remove members and moderators,
+// moderators can only remove regular members
 export function removeCommunityMember(communityId: number, userId: number): Promise<void> {
   return apiFetch<void>(`/v1/communities/${communityId}/members/${userId}`, {
     method: "DELETE",
   });
-}
-
-export function updateMemberRole(
-  communityId: number,
-  userId: number,
-  role: string
-): Promise<MembershipResponse> {
-  return apiFetch<MembershipResponse>(
-    `/v1/communities/${communityId}/members/${userId}/role?role=${encodeURIComponent(role)}`,
-    { method: "PUT" }
-  );
 }
 
 // ---------------------------------------------------------------------------

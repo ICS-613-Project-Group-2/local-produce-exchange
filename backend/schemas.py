@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import date, datetime
-
 from typing import Literal
 
 # Single source of truth for allowed values — used by Pydantic schemas and SQLAlchemy CHECK constraints
@@ -182,6 +181,7 @@ class CommunityResponse(BaseModel):
     is_private: bool | None = True
     member_count: int
     banner_url: str | None = None
+    my_role: str | None = None
 
 class CommunitiesListResponse(BaseModel):    
     my_communities: list[CommunityResponse]
@@ -215,6 +215,20 @@ class InvitationResponse(BaseModel):
     status: str | None
     sent_date: datetime | None
     expiration_date: datetime | None
+    invite_link: str
+
+
+class InvitationPreview(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    community_id: int
+    community_name: str
+    community_description: str
+    inviter_name: str | None
+    email: EmailStr
+    status: str | None
+    expiration_date: datetime | None
+    is_expired: bool
 
 
 # --- Notification schemas ---
