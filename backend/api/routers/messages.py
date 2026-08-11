@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.api.routers.moderation import _require_moderator_or_owner
 from database import get_db
 from api.deps import get_current_user
 from models import ClaimRequest, Listing, Message, MessageThread, User
@@ -58,7 +59,8 @@ def _get_thread_for_claim(db: Session, claim: ClaimRequest) -> MessageThread:
 # ---------------------------------------------------------------------------
 
 # retrieves the message thread for a claim, including all of its messages
-# only the claim's requester or the listing's owner can view it
+# the claim's requester, listing's owner, community owner, or community moderator can view it
+# only the claim's requester or listing's owner can post messages
 # returns a MessageThreadResponse object
 @router.get("/v1/claims/{claim_id}/thread", response_model=MessageThreadResponse)
 def get_message_thread(
@@ -68,12 +70,16 @@ def get_message_thread(
 ):
     claim = _get_claim(db, claim_id)
     listing = _get_listing(db, claim.listing_id)
+
+    # claim requester and listing owner can view the thread
     if current_user.user_id not in (claim.requester_user_id, listing.user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a participant in this claim's conversation",
+        # community owners and moderators can also view the thread
+        _require_moderator_or_owner(
+            db,
+            listing.community_id,
+            current_user.user_id,
         )
-    
+
     thread = _get_thread_for_claim(db, claim)
 
     messages = (
