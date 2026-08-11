@@ -10,11 +10,9 @@ from models import Listing, Photo, User
 from schemas import RegisterUser, GetUser, LoginUser, TokenResponse, UpdateUser, ListingResponse
 from api.routers.listings import _serialize_listing
 
-
 router = APIRouter(
     prefix="/v1",
 )
-
 
 @router.post("/register", response_model=GetUser, status_code=status.HTTP_201_CREATED)
 def register_user(
